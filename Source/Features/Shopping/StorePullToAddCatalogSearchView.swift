@@ -575,7 +575,10 @@ private struct StorePullToAddCatalogItemRow: View {
     @State private var isQuantityPillExpanded = false
 
     private var usesManualMirror: Bool {
-        CatalogLayoutMirroring.catalogListUsesManualMirror(for: catalogLanguage)
+        CatalogLayoutMirroring.usesManualCatalogMirror(
+            catalogLanguage: catalogLanguage,
+            layoutDirection: layoutDirection
+        )
     }
 
     private var isInShopping: Bool {

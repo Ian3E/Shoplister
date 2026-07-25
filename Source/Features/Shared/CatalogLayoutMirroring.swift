@@ -15,6 +15,8 @@ enum CatalogLayoutMirroring {
         catalogLanguage == .hebrew && layoutDirection == .leftToRight
     }
 
+    /// Catalog lists apply `catalogListLayoutDirection()`, so this follows catalog direction
+    /// (and is false for Hebrew lists already in an RTL container).
     static func catalogListUsesManualMirror(for catalogLanguage: AppContentLanguage) -> Bool {
         usesManualCatalogMirror(
             catalogLanguage: catalogLanguage,
@@ -42,6 +44,14 @@ enum CatalogLayoutMirroring {
     static func quantityPillOnPhysicalLeadingEdge(for catalogLanguage: AppContentLanguage) -> Bool {
         catalogLayoutDirection(for: catalogLanguage) == .rightToLeft
     }
+
+    /// English phone + Hebrew library: UIKit edit chrome ignores SwiftUI RTL and indents LTR.
+    /// Horizontally mirroring the List (and un-mirroring row content) flips that chrome so
+    /// selection/indent animate in library reading direction.
+    static func shouldMirrorUIKitListChrome(for catalogLanguage: AppContentLanguage) -> Bool {
+        catalogLanguage == .hebrew
+            && AppSystemLocale.interfaceLayoutDirection == .leftToRight
+    }
 }
 
 private struct CatalogListLayoutDirectionModifier: ViewModifier {
@@ -57,9 +67,24 @@ private struct CatalogListLayoutDirectionModifier: ViewModifier {
     }
 }
 
+private struct CatalogUIKitListChromeMirrorModifier: ViewModifier {
+    @Environment(\.appContentLanguage) private var catalogLanguage
+
+    func body(content: Content) -> some View {
+        let mirror = CatalogLayoutMirroring.shouldMirrorUIKitListChrome(for: catalogLanguage)
+        content.scaleEffect(x: mirror ? -1 : 1, y: 1)
+    }
+}
+
 extension View {
     /// Home / Store list content: RTL for Hebrew library, LTR for English library.
     func catalogListLayoutDirection() -> some View {
         modifier(CatalogListLayoutDirectionModifier())
+    }
+
+    /// Flip UIKit edit chrome for English-device + Hebrew-library lists. Pair with the same
+    /// modifier on row content so labels stay readable (double flip).
+    func catalogMirrorUIKitListChrome() -> some View {
+        modifier(CatalogUIKitListChromeMirrorModifier())
     }
 }

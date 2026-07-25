@@ -107,15 +107,17 @@ struct ItemEditorView: View {
         .navigationTitle(LocalizedCopy.editItem)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
+            ToolbarItem(placement: .cancellationAction) {
                 Button(LocalizedCopy.cancel) {
                     dismiss()
                 }
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .confirmationAction) {
                 Button(LocalizedCopy.save) {
                     applySave()
                 }
+                .fontWeight(.bold)
+                .appThemeTint()
                 .disabled(!isValid)
             }
         }

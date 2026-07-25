@@ -144,6 +144,8 @@ struct NewItemView: View {
                     onSaved?()
                     dismiss()
                 }
+                .fontWeight(.semibold)
+                .appThemeTint()
                 .disabled(!isValid)
             }
         }

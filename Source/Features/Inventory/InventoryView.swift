@@ -710,6 +710,8 @@ struct InventoryView: View {
                         )
                     }
                 }
+                // Before the section title bar so chrome mirror doesn't flip the slider.
+                .catalogMirrorUIKitListChrome()
                 .homeCatalogSectionTitleSafeAreaBar(isPresented: showsHomeCatalogSectionTitleBar) {
                     HomeCatalogSectionTitleBar(
                         sections: homeCatalogSectionTitles,
@@ -1952,7 +1954,10 @@ private struct InventoryCatalogRow: View {
     @Environment(\.shoppingListSpacingScale) private var spacingScale
 
     private var usesManualMirror: Bool {
-        CatalogLayoutMirroring.catalogListUsesManualMirror(for: catalogLanguage)
+        CatalogLayoutMirroring.usesManualCatalogMirror(
+            catalogLanguage: catalogLanguage,
+            layoutDirection: layoutDirection
+        )
     }
 
     let item: GroceryItem
@@ -2025,6 +2030,8 @@ private struct InventoryCatalogRow: View {
                     }
             }
         }
+        // Un-mirror row content when the List mirrors UIKit edit chrome (English device + Hebrew library).
+        .catalogMirrorUIKitListChrome()
         .id("\(item.id.uuidString)-\(quantityPillChromeID.uuidString)")
     }
 

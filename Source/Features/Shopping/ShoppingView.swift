@@ -1372,32 +1372,126 @@ private struct PullToClearScrollHostAtBottomModifier: ViewModifier {
     }
 }
 
-/// Owns alert text state so keystrokes do not re-render `ShoppingView` (which dismisses the field).
+/// Owns alert presentation so keystrokes do not re-render `ShoppingView` (which dismisses the field).
+/// Uses UIKit so Create is `preferredAction` (white text on prominent fill), matching move-to-new-section.
 private struct SaveShoppingListAsRecipeAlert: View {
     @Binding var isPresented: Bool
     let onConfirm: (String) -> Void
 
-    @State private var name = ""
-
     var body: some View {
         Color.clear
             .frame(width: 0, height: 0)
-            .onChange(of: isPresented) { _, presented in
-                if presented {
-                    name = ""
+            .background(
+                SaveShoppingListUIKitAlertBridge(
+                    isPresented: $isPresented,
+                    onConfirm: onConfirm
+                )
+            )
+    }
+}
+
+private struct SaveShoppingListUIKitAlertBridge: UIViewRepresentable {
+    @Binding var isPresented: Bool
+    let onConfirm: (String) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(isPresented: $isPresented)
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.isPresented = $isPresented
+        context.coordinator.onConfirm = onConfirm
+        if isPresented {
+            context.coordinator.presentIfNeeded(from: uiView)
+        } else {
+            context.coordinator.dismissIfNeeded()
+        }
+    }
+
+    @MainActor
+    final class Coordinator {
+        var isPresented: Binding<Bool>
+        var onConfirm: ((String) -> Void)?
+        private weak var presentedAlert: UIAlertController?
+        private var isPresenting = false
+
+        init(isPresented: Binding<Bool>) {
+            self.isPresented = isPresented
+        }
+
+        func presentIfNeeded(from view: UIView) {
+            guard presentedAlert == nil, !isPresenting else { return }
+            isPresenting = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                guard self.presentedAlert == nil else {
+                    self.isPresenting = false
+                    return
+                }
+                guard let presenter = view.nearestViewControllerForAlert() else {
+                    self.isPresenting = false
+                    self.isPresented.wrappedValue = false
+                    return
+                }
+
+                let alert = UIAlertController(
+                    title: LocalizedCopy.saveList,
+                    message: nil,
+                    preferredStyle: .alert
+                )
+                alert.addTextField { field in
+                    field.placeholder = LocalizedCopy.listName
+                    field.autocapitalizationType = .words
+                    field.autocorrectionType = .default
+                }
+
+                let createAction = UIAlertAction(title: LocalizedCopy.create, style: .default) { [weak self] _ in
+                    let raw = alert.textFields?.first?.text ?? ""
+                    self?.onConfirm?(raw)
+                    self?.presentedAlert = nil
+                    self?.isPresenting = false
+                    self?.isPresented.wrappedValue = false
+                }
+                alert.addAction(createAction)
+                alert.addAction(UIAlertAction(title: LocalizedCopy.cancel, style: .cancel) { [weak self] _ in
+                    self?.presentedAlert = nil
+                    self?.isPresenting = false
+                    self?.isPresented.wrappedValue = false
+                })
+                alert.preferredAction = createAction
+
+                self.presentedAlert = alert
+                presenter.present(alert, animated: true) {
+                    self.isPresenting = false
                 }
             }
-            .alert(LocalizedCopy.saveList, isPresented: $isPresented) {
-                TextField(LocalizedCopy.listName, text: $name)
-                    .textInputAutocapitalization(.words)
-                Button(LocalizedCopy.create) {
-                    onConfirm(name)
-                }
-                .keyboardShortcut(.defaultAction)
-                Button(LocalizedCopy.cancel, role: .cancel) {
-                    name = ""
-                }
+        }
+
+        func dismissIfNeeded() {
+            guard let alert = presentedAlert else { return }
+            alert.dismiss(animated: true)
+            presentedAlert = nil
+            isPresenting = false
+        }
+    }
+}
+
+private extension UIView {
+    func nearestViewControllerForAlert() -> UIViewController? {
+        var responder: UIResponder? = self
+        while let current = responder {
+            if let viewController = current as? UIViewController {
+                return viewController.presentedViewController ?? viewController
             }
+            responder = current.next
+        }
+        return nil
     }
 }
 
