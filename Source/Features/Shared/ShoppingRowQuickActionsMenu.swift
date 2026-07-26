@@ -381,7 +381,25 @@ enum ListRowContextMenuPreviewChrome {
         parameters.backgroundColor = UIColor { traits in
             traits.userInterfaceStyle == .dark ? .clear : .white
         }
-        return UITargetedPreview(view: listCell, parameters: parameters)
+        // Prefer contentView: list-cell chrome can report degenerate bounds under mixed
+        // phone/library layout direction. Fall back to the cell when content is empty.
+        let previewView: UIView
+        if listCell.contentView.bounds.width > 1 {
+            previewView = listCell.contentView
+            parameters.visiblePath = UIBezierPath(
+                roundedRect: listCell.contentView.bounds,
+                cornerRadius: 12
+            )
+        } else {
+            previewView = listCell
+            if listCell.bounds.width > 1 {
+                parameters.visiblePath = UIBezierPath(
+                    roundedRect: listCell.bounds,
+                    cornerRadius: 12
+                )
+            }
+        }
+        return UITargetedPreview(view: previewView, parameters: parameters)
     }
 }
 

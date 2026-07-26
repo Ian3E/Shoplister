@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 private enum HomeCatalogEditModeTiming {
+    /// After `EditMode` animates (Saved Lists `showsRecipeNameFields` pattern).
     static let chromeDelayMs: UInt64 = 280
     static let statusFadeDuration: TimeInterval = 0.2
 }
@@ -522,13 +523,13 @@ struct InventoryView: View {
 
         if animated {
             showHomeRowShoppingStatusImmediately()
-            // Drop list/parent chrome before the toolbar morph — doing it after ~280ms
-            // reflows the bar at the end of ⋯↔Move/Delete.
+            // Same order as Saved Lists: drop structural row chrome first (unanimated), then
+            // animate EditMode so list indent/accessories can run on a stable row tree.
             finishHomeCatalogEditModeDeactivation()
             deactivateHomeEditRowChromeTask = Task { @MainActor in
                 await Task.yield()
                 guard !Task.isCancelled else { return }
-                withAnimation(.default) {
+                withAnimation(.snappy) {
                     homeListEditMode = .inactive
                 }
             }
@@ -545,11 +546,13 @@ struct InventoryView: View {
         deactivateHomeEditRowChromeTask = Task { @MainActor in
             await Task.yield()
             guard !Task.isCancelled, homeListEditMode == .inactive else { return }
-            withAnimation(.default) {
+            // Match Saved Lists: animate EditMode on the browse row tree first, then mount
+            // structural edit chrome after the indent animation (see showsRecipeNameFields).
+            withAnimation(.snappy) {
                 homeListEditMode = .active
             }
-            // Mount list handles / parent binding immediately (unanimated). Delaying this to
-            // chromeDelayMs landed on the trailing morph's settle and caused a late jump.
+            try? await Task.sleep(for: .milliseconds(Self.homeEditModeChromeDelayMs))
+            guard !Task.isCancelled, homeListEditMode == .active else { return }
             var transaction = Transaction()
             transaction.disablesAnimations = true
             withTransaction(transaction) {
@@ -710,8 +713,6 @@ struct InventoryView: View {
                         )
                     }
                 }
-                // Before the section title bar so chrome mirror doesn't flip the slider.
-                .catalogMirrorUIKitListChrome()
                 .homeCatalogSectionTitleSafeAreaBar(isPresented: showsHomeCatalogSectionTitleBar) {
                     HomeCatalogSectionTitleBar(
                         sections: homeCatalogSectionTitles,
@@ -852,7 +853,7 @@ struct InventoryView: View {
         )
 
         HomeCatalogRowContextMenuHost(
-            isEnabled: !isReorderMode,
+            isEnabled: homeListEditMode != .active,
             item: item,
             onTap: {
                 toggleHomeItemShopping(itemID: item.id, onAddedToShopping: onAddedToShopping)
@@ -860,12 +861,9 @@ struct InventoryView: View {
             onEdit: onEdit,
             onDelete: { onDeleteItem(item) }
         ) {
-            if isReorderMode {
-                catalogRow
-                    .onTapGesture(perform: onEdit)
-            } else {
-                catalogRow
-            }
+            // Keep a single child shape (Saved Lists pattern) so List edit chrome can animate
+            // on a stable row tree — branching on isReorderMode remounts and breaks RTL indent.
+            catalogRow
         }
     }
 
@@ -1952,12 +1950,17 @@ private struct InventoryCatalogRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.shoppingListSpacingScale) private var spacingScale
+    @Environment(\.editMode) private var editMode
 
     private var usesManualMirror: Bool {
         CatalogLayoutMirroring.usesManualCatalogMirror(
             catalogLanguage: catalogLanguage,
             layoutDirection: layoutDirection
         )
+    }
+
+    private var isListEditing: Bool {
+        editMode?.wrappedValue.isEditing == true
     }
 
     let item: GroceryItem
@@ -2009,29 +2012,25 @@ private struct InventoryCatalogRow: View {
                 quantityPillExpandedBinding.wrappedValue = false
             }
 
-        // Key by item + chrome token so `@State` expansion resets on Library become-active remount.
-        // Chrome ID alone isn't unique across sibling rows.
+        // Keep the same branch shape so List edit-mode chrome can animate (Saved Lists pattern).
+        // Gate behavior inside handlers instead of stripping modifiers when edit becomes active.
         Group {
-            if isReorderMode {
-                row
-            } else if usesUIKitContextMenu {
+            if usesUIKitContextMenu {
                 row
             } else {
                 row
                     .onTapGesture { handleTap() }
                     .onLongPressGesture(minimumDuration: 0.35) {
-                        guard enablesLongPressToEdit else { return }
+                        guard enablesLongPressToEdit, !isListEditing else { return }
                         AppHaptics.impact(.medium)
                         onEdit()
                     }
                     .accessibilityAction(named: LocalizedCopy.edit) {
-                        guard enablesLongPressToEdit else { return }
+                        guard enablesLongPressToEdit || isListEditing || isReorderMode else { return }
                         onEdit()
                     }
             }
         }
-        // Un-mirror row content when the List mirrors UIKit edit chrome (English device + Hebrew library).
-        .catalogMirrorUIKitListChrome()
         .id("\(item.id.uuidString)-\(quantityPillChromeID.uuidString)")
     }
 
@@ -2082,7 +2081,7 @@ private struct InventoryCatalogRow: View {
 
     private func handleTap() {
         collapseExpandedQuantityPillIfNeeded()
-        if isReorderMode {
+        if isReorderMode || isListEditing {
             onEdit()
         } else {
             if isInShopping {
@@ -2203,25 +2202,37 @@ private struct InventoryCatalogRow: View {
 
 /// Adjusts the underlying UICollectionView/UITableView drag interaction so
 /// long-press-to-drag is only active in edit mode, letting browse-mode rows
-/// handle their own long-press-to-edit gesture.
+/// handle their own long-press-to-edit gesture. Also refreshes UIKit list direction.
 private struct ListDragInteractionModifier: ViewModifier {
+    @Environment(\.appContentLanguage) private var catalogLanguage
     let enabled: Bool
+
     func body(content: Content) -> some View {
-        content.background(ListDragInteractionAdjuster(enabled: enabled))
+        content.background(
+            ListDragInteractionAdjuster(
+                enabled: enabled,
+                catalogLanguage: catalogLanguage
+            )
+        )
     }
 }
 
 private struct ListDragInteractionAdjuster: UIViewRepresentable {
     let enabled: Bool
+    let catalogLanguage: AppContentLanguage
+
     func makeUIView(context: Context) -> UIView { UIView() }
+
     func updateUIView(_ uiView: UIView, context: Context) {
         DispatchQueue.main.async {
-            // Walk up through ancestors; at each level search descendants for
-            // the UICollectionView that the .background view sits alongside.
             var ancestor: UIView? = uiView.superview
             for _ in 0..<8 {
                 guard let container = ancestor else { break }
                 if let cv = Self.firstDescendant(ofType: UICollectionView.self, in: container) {
+                    CatalogLayoutMirroring.applyUIKitListChromeDirectionIfNeeded(
+                        to: cv,
+                        catalogLanguage: catalogLanguage
+                    )
                     let offset = cv.contentOffset
                     cv.dragInteractionEnabled = enabled
                     guard offset.y > 0 else { return }

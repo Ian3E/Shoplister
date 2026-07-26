@@ -1430,6 +1430,10 @@ private struct SaveShoppingListUIKitAlertBridge: UIViewRepresentable {
             isPresenting = true
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
+                guard self.isPresented.wrappedValue else {
+                    self.isPresenting = false
+                    return
+                }
                 guard self.presentedAlert == nil else {
                     self.isPresenting = false
                     return
@@ -1453,10 +1457,16 @@ private struct SaveShoppingListUIKitAlertBridge: UIViewRepresentable {
 
                 let createAction = UIAlertAction(title: LocalizedCopy.create, style: .default) { [weak self] _ in
                     let raw = alert.textFields?.first?.text ?? ""
-                    self?.onConfirm?(raw)
-                    self?.presentedAlert = nil
-                    self?.isPresenting = false
-                    self?.isPresented.wrappedValue = false
+                    guard let self else { return }
+                    // Clear presentation state before onConfirm. Confirm shows a toast and
+                    // re-renders ShoppingView; if isPresented is still true and presentedAlert
+                    // was already nil, updateUIView would present the alert again.
+                    self.presentedAlert = nil
+                    self.isPresenting = false
+                    self.isPresented.wrappedValue = false
+                    DispatchQueue.main.async {
+                        self.onConfirm?(raw)
+                    }
                 }
                 alert.addAction(createAction)
                 alert.addAction(UIAlertAction(title: LocalizedCopy.cancel, style: .cancel) { [weak self] _ in
@@ -1475,9 +1485,9 @@ private struct SaveShoppingListUIKitAlertBridge: UIViewRepresentable {
 
         func dismissIfNeeded() {
             guard let alert = presentedAlert else { return }
-            alert.dismiss(animated: true)
             presentedAlert = nil
             isPresenting = false
+            alert.dismiss(animated: true)
         }
     }
 }
