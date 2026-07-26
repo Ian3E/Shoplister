@@ -16,7 +16,7 @@ private enum ShareCatalogLanguage: String {
 // MARK: - App group (must match `ShareExtensionAppGroupSupport` in the host target)
 
 private enum ShareAppGroup {
-    static let identifier = "group.com.ianengelman.shoplister"
+    static let identifier = "group.com.byteloft.apps.shoplister"
     static let catalogSnapshotFileName = "share_catalog_snapshot.json"
     static let pendingShoppingOpsFileName = "pending_share_shopping_ops.json"
     static let catalogLanguageKey = "app.catalogContentLanguage"
