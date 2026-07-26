@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		83840ABB2FE5D790001D1EBA /* LocalizedCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000005B /* LocalizedCopy.swift */; };
-		AA0000010000000000000001 /* GroceryListApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000001 /* GroceryListApp.swift */; };
+		AA0000010000000000000001 /* ShoplisterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000001 /* ShoplisterApp.swift */; };
 		AA0000020000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000002 /* ContentView.swift */; };
 		AA0000030000000000000003 /* GroceryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000003 /* GroceryStore.swift */; };
 		AA0000040000000000000004 /* GroceryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000004 /* GroceryItem.swift */; };
@@ -127,7 +127,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		AA0001010000000000000001 /* GroceryListApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroceryListApp.swift; sourceTree = "<group>"; };
+		AA0001010000000000000001 /* ShoplisterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoplisterApp.swift; sourceTree = "<group>"; };
 		AA0001010000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AA0001010000000000000003 /* GroceryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroceryStore.swift; sourceTree = "<group>"; };
 		AA0001010000000000000004 /* GroceryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroceryItem.swift; sourceTree = "<group>"; };
@@ -202,14 +202,14 @@
 		AA000102000000000000010E /* FirstAddToListDiveOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstAddToListDiveOverlay.swift; sourceTree = "<group>"; };
 		AA000102000000000000010C /* SettingsAppFeaturesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAppFeaturesView.swift; sourceTree = "<group>"; };
 		AA000102000000000000010D /* AppFeaturesCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeaturesCatalog.swift; sourceTree = "<group>"; };
-		AA0002010000000000000000 /* Shoplister_v2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Shoplister_v2.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0002010000000000000000 /* Shoplister.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Shoplister.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0002010000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA0002010000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AA0002010000000000000003 /* seed-library-backup-en.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "seed-library-backup-en.txt"; sourceTree = "<group>"; };
 		AA0002010000000000000004 /* seed-library-backup-he.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "seed-library-backup-he.txt"; sourceTree = "<group>"; };
 		AA0002010000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AA0002010000000000000006 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
-		AA0002010000000000000007 /* GroceryList.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GroceryList.entitlements; sourceTree = "<group>"; };
+		AA0002010000000000000007 /* Shoplister.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Shoplister.entitlements; sourceTree = "<group>"; };
 		AA0002010000000000000008 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0002010000000000000009 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		AA000201000000000000000A /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -241,7 +241,7 @@
 		AA0005000000000000000000 = {
 			isa = PBXGroup;
 			children = (
-				AA0006000000000000000000 /* GroceryList */,
+				AA0006000000000000000000 /* Shoplister */,
 				AA0007000000000000000000 /* Source */,
 				AA000S000000000000000000 /* ShareExtension */,
 				AA0002010000000000000003 /* seed-library-backup-en.txt */,
@@ -250,18 +250,18 @@
 			);
 			sourceTree = "<group>";
 		};
-		AA0006000000000000000000 /* GroceryList */ = {
+		AA0006000000000000000000 /* Shoplister */ = {
 			isa = PBXGroup;
 			children = (
 				AA0002010000000000000001 /* Assets.xcassets */,
 				AA0002010000000000000009 /* LaunchScreen.storyboard */,
 				AA0002010000000000000002 /* Info.plist */,
 				AA000201000000000000000D /* PrivacyInfo.xcprivacy */,
-				AA0002010000000000000007 /* GroceryList.entitlements */,
+				AA0002010000000000000007 /* Shoplister.entitlements */,
 				AA0006610000000000000000 /* en.lproj */,
 				AA0006620000000000000000 /* he.lproj */,
 			);
-			path = GroceryList;
+			path = Shoplister;
 			sourceTree = "<group>";
 		};
 		AA0006610000000000000000 /* en.lproj */ = {
@@ -283,7 +283,7 @@
 		AA0007000000000000000000 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				AA0001010000000000000001 /* GroceryListApp.swift */,
+				AA0001010000000000000001 /* ShoplisterApp.swift */,
 				AA0001010000000000000002 /* ContentView.swift */,
 				AA0009500000000000000000 /* AppIntents */,
 				AA0009000000000000000000 /* Features */,
@@ -297,7 +297,7 @@
 		AA0008000000000000000000 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AA0002010000000000000000 /* Shoplister_v2.app */,
+				AA0002010000000000000000 /* Shoplister.app */,
 				AA0002010000000000000008 /* ShareExtension.appex */,
 			);
 			name = Products;
@@ -465,9 +465,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AA000C000000000000000000 /* Shoplister_v2 */ = {
+		AA000C000000000000000000 /* Shoplister */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AA0013000000000000000000 /* Build configuration list for PBXNativeTarget "Shoplister_v2" */;
+			buildConfigurationList = AA0013000000000000000000 /* Build configuration list for PBXNativeTarget "Shoplister" */;
 			buildPhases = (
 				AA000D000000000000000000 /* Sources */,
 				AA000E000000000000000000 /* Frameworks */,
@@ -479,12 +479,12 @@
 			dependencies = (
 				AA000Q000000000000000000 /* PBXTargetDependency */,
 			);
-			name = Shoplister_v2;
+			name = Shoplister;
 			packageProductDependencies = (
 				AA000PKG2000000000000002 /* ZIPFoundation */,
 			);
-			productName = Shoplister_v2;
-			productReference = AA0002010000000000000000 /* Shoplister_v2.app */;
+			productName = Shoplister;
+			productReference = AA0002010000000000000000 /* Shoplister.app */;
 			productType = "com.apple.product-type.application";
 		};
 		AA000H000000000000000000 /* ShareExtension */ = {
@@ -522,7 +522,7 @@
 					};
 				};
 			};
-			buildConfigurationList = AA0012000000000000000000 /* Build configuration list for PBXProject "Shoplister_v2" */;
+			buildConfigurationList = AA0012000000000000000000 /* Build configuration list for PBXProject "Shoplister" */;
 			compatibilityVersion = "Xcode 16.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -539,7 +539,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AA000C000000000000000000 /* Shoplister_v2 */,
+				AA000C000000000000000000 /* Shoplister */,
 				AA000H000000000000000000 /* ShareExtension */,
 			);
 		};
@@ -577,7 +577,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA0000010000000000000001 /* GroceryListApp.swift in Sources */,
+				AA0000010000000000000001 /* ShoplisterApp.swift in Sources */,
 				AA0000020000000000000002 /* ContentView.swift in Sources */,
 				AA0000100000000000000010 /* SettingsView.swift in Sources */,
 				AA0000030000000000000003 /* GroceryStore.swift in Sources */,
@@ -698,7 +698,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.grocerylist.v2.ShareExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.shoplister.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -727,7 +727,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.grocerylist.v2.ShareExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.shoplister.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -773,7 +773,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.grocerylist.v2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.shoplister;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -819,7 +819,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.grocerylist.v2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.shoplister;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -837,19 +837,19 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_ENTITLEMENTS = GroceryList/GroceryList.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Shoplister/Shoplister.entitlements;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = V82Z48RCF5;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = GroceryList/Info.plist;
+				INFOPLIST_FILE = Shoplister/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.grocerylist.v2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.shoplister;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -870,18 +870,18 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_ENTITLEMENTS = GroceryList/GroceryList.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Shoplister/Shoplister.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = V82Z48RCF5;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = GroceryList/Info.plist;
+				INFOPLIST_FILE = Shoplister/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.grocerylist.v2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ianengelman.shoplister;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -908,7 +908,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		AA0012000000000000000000 /* Build configuration list for PBXProject "Shoplister_v2" */ = {
+		AA0012000000000000000000 /* Build configuration list for PBXProject "Shoplister" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AA0011000000000000000000 /* Debug */,
@@ -917,7 +917,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		AA0013000000000000000000 /* Build configuration list for PBXNativeTarget "Shoplister_v2" */ = {
+		AA0013000000000000000000 /* Build configuration list for PBXNativeTarget "Shoplister" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AA0014000000000000000000 /* Debug */,

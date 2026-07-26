@@ -78,7 +78,7 @@ private final class AppDelegate: NSObject, UIApplicationDelegate {
 }
 
 @main
-struct GroceryListApp: App {
+struct ShoplisterApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var store = GroceryStore()
     @StateObject private var fullWindowOverlay = FullWindowOverlayCoordinator()

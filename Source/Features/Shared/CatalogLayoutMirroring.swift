@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 /// Catalog list layout (Home / Store rows) follows **library language**.
-/// App chrome follows **phone language** via the root `layoutDirection` in `GroceryListApp`.
+/// App chrome follows **phone language** via the root `layoutDirection` in `ShoplisterApp`.
 enum CatalogLayoutMirroring {
     static func catalogLayoutDirection(for catalogLanguage: AppContentLanguage) -> LayoutDirection {
         catalogLanguage == .hebrew ? .rightToLeft : .leftToRight

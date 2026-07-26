@@ -1,36 +1,36 @@
-# Shoplister v2
+# Shoplister
 
-**Shoplister v2** is the production iOS app in this repository — a grocery list and item library with English/Hebrew support, saved lists, and on-device backup. It evolved from [Shoplister v1](../Shoplister_v1) as a separate App Store listing with a new bundle ID.
+**Shoplister** is a grocery list and item library for iOS — English/Hebrew support, saved lists, and on-device backup.
 
-The Xcode project is **`Shoplister_v2.xcodeproj`**; the main app target is **Shoplister_v2**. The on-device name is **Shoplister**.
+The Xcode project is **`Shoplister.xcodeproj`**; the main app target and on-device name are **Shoplister**.
 
-| | v1 | v2 (this folder) |
-|---|---|---|
-| Project | `GroceryList.xcodeproj` | `Shoplister_v2.xcodeproj` |
-| Bundle ID | `com.ianengelman.grocerylist` | `com.ianengelman.grocerylist.v2` |
-| Share extension | `…grocerylist.ShareExtension` | `…grocerylist.v2.ShareExtension` |
-| App Group | `group.com.ianengelman.grocerylist` | `group.com.ianengelman.grocerylist.v2` |
+| | Value |
+|---|---|
+| Project | `Shoplister.xcodeproj` |
+| Bundle ID | `com.ianengelman.shoplister` |
+| Share extension | `com.ianengelman.shoplister.ShareExtension` |
+| App Group | `group.com.ianengelman.shoplister` |
 
-v1 and v2 can be installed side by side on the same device. They use **separate** App Group containers (register `group.com.ianengelman.grocerylist.v2` in your Apple Developer account if signing fails).
+Register the App Group on both App IDs in your Apple Developer account if signing fails.
 
 ## Open & run
 
-1. Open **`Shoplister_v2.xcodeproj`** in Xcode.
-2. Select the **Shoplister_v2** scheme (main app).
+1. Open **`Shoplister.xcodeproj`** in Xcode.
+2. Select the **Shoplister** scheme (main app).
 3. Build and run on a simulator or device.
 
-The app entry point is `GroceryListApp` (`Source/GroceryListApp.swift`). Resources such as `seed-library-backup-en.txt` / `seed-library-backup-he.txt` must be included in the app target for first-launch seeding.
+The app entry point is `ShoplisterApp` (`Source/ShoplisterApp.swift`). Resources such as `seed-library-backup-en.txt` / `seed-library-backup-he.txt` must be included in the app target for first-launch seeding.
 
 ## Layout
 
 | Path | Role |
 |------|------|
 | `Source/` | Main app Swift code |
-| `GroceryList/` | Info.plist, entitlements, assets, launch screen |
+| `Shoplister/` | Info.plist, entitlements, assets, launch screen |
 | `ShareExtension/` | Share extension |
-| `Shoplister_v2.xcodeproj` | Xcode project |
+| `Shoplister.xcodeproj` | Xcode project |
 
-## Features (same as v1)
+## Features
 
 | Area | Notes |
 |------|--------|
@@ -43,14 +43,14 @@ The app entry point is `GroceryListApp` (`Source/GroceryListApp.swift`). Resourc
 
 The privacy policy lives at [`docs/privacy.html`](docs/privacy.html). The app links to:
 
-**https://ian3e.github.io/Shoplister_v2/privacy.html**
+**https://ian3e.github.io/Shoplister/privacy.html**
 
 To publish after pushing to GitHub:
 
 1. Open the repo on GitHub → **Settings** → **Pages**
 2. Under **Build and deployment**, set **Source** to **Deploy from a branch**
 3. Choose branch **main** and folder **/docs**
-4. Save; GitHub will serve the site at `https://ian3e.github.io/Shoplister_v2/`
+4. Save; GitHub will serve the site at `https://ian3e.github.io/Shoplister/`
 
 Use the same URL in **App Store Connect** → App Privacy → Privacy Policy URL.
 
@@ -60,17 +60,17 @@ Complete these steps in [Apple Developer](https://developer.apple.com) and [App 
 
 ### Developer Portal (signing)
 
-- App IDs: `com.ianengelman.grocerylist.v2` and `com.ianengelman.grocerylist.v2.ShareExtension`
-- App Group `group.com.ianengelman.grocerylist.v2` enabled on **both** App IDs
+- App IDs: `com.ianengelman.shoplister` and `com.ianengelman.shoplister.ShareExtension`
+- App Group `group.com.ianengelman.shoplister` enabled on **both** App IDs
 - Provisioning profiles regenerate cleanly; **Product → Archive** succeeds for Release / Any iOS Device
 
 ### App Store Connect (new listing)
 
-Create a **new app** for bundle ID `com.ianengelman.grocerylist.v2` (not an update to v1).
+Create a **new app** for bundle ID `com.ianengelman.shoplister`.
 
 | Field | Value |
 |-------|--------|
-| Privacy Policy URL | `https://ian3e.github.io/Shoplister_v2/privacy.html` |
+| Privacy Policy URL | `https://ian3e.github.io/Shoplister/privacy.html` |
 | Support | `support.shoplister@gmail.com` |
 
 **App Privacy questionnaire (summary):**

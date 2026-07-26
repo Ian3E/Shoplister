@@ -86,7 +86,7 @@ enum LibraryBackupCodec {
         recipes: [Recipe]
     ) -> String {
         var lines: [String] = []
-        lines.append("# GroceryList library backup")
+        lines.append("# Shoplister library backup")
         lines.append("# format-version: \(formatVersion)")
         lines.append("# language: \(language.rawValue)")
         lines.append("#")

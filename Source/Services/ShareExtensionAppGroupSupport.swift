@@ -8,7 +8,7 @@ extension Notification.Name {
 }
 
 enum ShareExtensionAppGroupSupport {
-    static let appGroupIdentifier = "group.com.ianengelman.grocerylist.v2"
+    static let appGroupIdentifier = "group.com.ianengelman.shoplister"
     static let catalogSnapshotFileName = "share_catalog_snapshot.json"
     static let pendingShoppingOpsFileName = "pending_share_shopping_ops.json"
 

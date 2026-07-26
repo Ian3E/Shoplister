@@ -19,7 +19,7 @@
                BlueprintIdentifier = "AA000H000000000000000000"
                BuildableName = "ShareExtension.appex"
                BlueprintName = "ShareExtension"
-               ReferencedContainer = "container:Shoplister_v2.xcodeproj">
+               ReferencedContainer = "container:Shoplister.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -31,9 +31,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AA000C000000000000000000"
-               BuildableName = "Shoplister_v2.app"
-               BlueprintName = "Shoplister_v2"
-               ReferencedContainer = "container:Shoplister_v2.xcodeproj">
+               BuildableName = "Shoplister.app"
+               BlueprintName = "Shoplister"
+               ReferencedContainer = "container:Shoplister.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -63,9 +63,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AA000C000000000000000000"
-            BuildableName = "Shoplister_v2.app"
-            BlueprintName = "Shoplister_v2"
-            ReferencedContainer = "container:Shoplister_v2.xcodeproj">
+            BuildableName = "Shoplister.app"
+            BlueprintName = "Shoplister"
+            ReferencedContainer = "container:Shoplister.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -82,9 +82,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AA000C000000000000000000"
-            BuildableName = "Shoplister_v2.app"
-            BlueprintName = "Shoplister_v2"
-            ReferencedContainer = "container:Shoplister_v2.xcodeproj">
+            BuildableName = "Shoplister.app"
+            BlueprintName = "Shoplister"
+            ReferencedContainer = "container:Shoplister.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

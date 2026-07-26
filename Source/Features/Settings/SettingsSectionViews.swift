@@ -343,7 +343,7 @@ private enum SettingsAboutAppInfo {
 }
 
 private enum AppLegalLinks {
-    static let privacyPolicy = URL(string: "https://ian3e.github.io/Shoplister_v2/privacy.html")!
+    static let privacyPolicy = URL(string: "https://ian3e.github.io/Shoplister/privacy.html")!
 }
 
 private struct SettingsAboutPrivacyPolicyRow: View {

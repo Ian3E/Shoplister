@@ -47,12 +47,12 @@ flowchart LR
 
 ## Current state (at time of plan)
 
-Shoplister v2 is **100% local**:
+Shoplister is **100% local**:
 
 - `GroceryStore.swift` owns all mutations and persists two `V3Bundle` JSON blobs to `UserDefaults` (`grocery.v3.english` / `grocery.v3.hebrew`)
 - Item photos are local JPEGs via `ItemImageStore.swift`
 - Share extension + App Intent use App Group IPC only (`ShareExtensionAppGroupSupport.swift`)
-- Entitlements: App Group only (`GroceryList.entitlements`) — **no CloudKit**
+- Entitlements: App Group only (`Shoplister.entitlements`) — **no CloudKit**
 
 ```mermaid
 flowchart TB
@@ -108,7 +108,7 @@ UI mutations write to local cache **immediately** (snappy UX), enqueue sync ops,
 
 **CKShare root record:** `Household` — participants get read/write on child records (items, tags, shopping entries, recipes).
 
-**Container:** `iCloud.com.ianengelman.grocerylist.v2` (new capability in Xcode + CloudKit Dashboard schema).
+**Container:** `iCloud.com.ianengelman.shoplister` (new capability in Xcode + CloudKit Dashboard schema).
 
 ### CloudKit record types
 
@@ -219,7 +219,7 @@ Local-only users: no CloudKit writes, no behavior change from today.
 - Add `Household` root record with `libraryLanguage` + `CKShare` creation in private DB
 - Move single-language domain records from private DB → shared DB zone on household creation
 - `HouseholdRepository`: create, invite (`UICloudSharingController`), accept, leave, delete, transfer ownership
-- Handle share acceptance in `GroceryListApp.swift` via `CKShare.Metadata` / `userDidAcceptCloudKitShareWith`
+- Handle share acceptance in `ShoplisterApp.swift` via `CKShare.Metadata` / `userDidAcceptCloudKitShareWith`
 - CK subscriptions on `ShoppingEntry` + `GroceryItem` for push-driven updates
 - Settings Household UI (confirmed: one active household)
 - Enforce: sharing requires iCloud; local-only users unaffected
@@ -253,10 +253,10 @@ Local-only users: no CloudKit writes, no behavior change from today.
 | **New** `HouseholdRepository` | CKShare lifecycle, membership |
 | **New** `SyncMetadata` on models | `modifiedAt`, `modifiedBy`, `isDeleted`, `householdID` (no per-record language) |
 | `ItemImageStore.swift` | Local file cache + CKAsset coordinator |
-| `GroceryListApp.swift` | iCloud account observer, sync bootstrap, share accept |
+| `ShoplisterApp.swift` | iCloud account observer, sync bootstrap, share accept |
 | `SettingsView.swift` | Household section, iCloud status; household-aware language picker with whole-household reset |
 | `ShareExtensionAppGroupSupport.swift` | Household-aware snapshot with stable IDs |
-| `GroceryList.entitlements` | CloudKit + Push Notifications |
+| `Shoplister.entitlements` | CloudKit + Push Notifications |
 | `LibraryBackupCodec.swift` | Keep as manual export escape hatch; import preserves item UUIDs (v4 `item_id` column) |
 
 ---
@@ -267,7 +267,7 @@ Main app (extension stays App Group only for v1; host syncs snapshot):
 
 ```
 com.apple.developer.icloud-services → CloudKit
-com.apple.developer.icloud-container-identifiers → iCloud.com.ianengelman.grocerylist.v2
+com.apple.developer.icloud-container-identifiers → iCloud.com.ianengelman.shoplister
 aps-environment → development/production
 ```
 

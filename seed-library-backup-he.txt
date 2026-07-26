@@ -1,4 +1,4 @@
-# GroceryList library backup
+# Shoplister library backup
 # format-version: 3
 # language: hebrew
 #

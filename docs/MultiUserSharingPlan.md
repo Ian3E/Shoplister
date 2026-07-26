@@ -9,7 +9,7 @@
 
 ## Where the app is today
 
-Shoplister v2 is **fully local**: [`GroceryStore.swift`](../Source/Services/GroceryStore.swift) persists two independent language bundles (`english` / `hebrew`) to `UserDefaults`, each containing catalog, tags, and shopping list. There is **no user identity, no cloud sync, and no shared list ID**.
+Shoplister is **fully local**: [`GroceryStore.swift`](../Source/Services/GroceryStore.swift) persists two independent language bundles (`english` / `hebrew`) to `UserDefaults`, each containing catalog, tags, and shopping list. There is **no user identity, no cloud sync, and no shared list ID**.
 
 ```mermaid
 flowchart LR
@@ -238,7 +238,7 @@ Start with **field-level last-write-wins + tombstones**. Avoid custom CRDTs unti
 | New `CloudKitSyncService` / `HouseholdRepository` | CK records, shares, subscriptions, retry |
 | Models [`GroceryItem`](../Source/Models/GroceryItem.swift), [`ShoppingEntry`](../Source/Models/ShoppingEntry.swift), [`Tag`](../Source/Models/Tag.swift) | Sync metadata, CK mapping |
 | [`ItemImageStore.swift`](../Source/Models/ItemImageStore.swift) | Local cache + cloud asset pipeline |
-| [`GroceryListApp.swift`](../Source/GroceryListApp.swift) | iCloud account check, sync bootstrap, share accept handlers |
+| [`ShoplisterApp.swift`](../Source/ShoplisterApp.swift) | iCloud account check, sync bootstrap, share accept handlers |
 | Entitlements | Add CloudKit container + push |
 | Settings | Household UI, sign-in status, leave/join |
 | Share extension + App Group | Household-aware snapshot + IDs |
@@ -251,7 +251,7 @@ Start with **field-level last-write-wins + tombstones**. Avoid custom CRDTs unti
 
 Add to main app + extension as needed:
 - `com.apple.developer.icloud-services` → CloudKit
-- CloudKit container (e.g. `iCloud.com.ianengelman.grocerylist.v2`)
+- CloudKit container (e.g. `iCloud.com.ianengelman.shoplister`)
 - Push Notifications capability (for silent CK updates)
 - Possibly **Sign in with Apple** only if you later add a backend; **not required** for CloudKit (uses iCloud account)
 
