@@ -169,9 +169,13 @@ private struct ShareImportReviewRootView: View {
                     }
                 }
                 if draft.hasMatches {
-                    ToolbarItem(placement: .confirmationAction) {
+                    // Match RecipeApplySheet “Add” (saved list): prominent glass, blue tint.
+                    // Keep Cancel on the default (non-tinted) cancellation style.
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button(LocalizedCopy.add, action: onAdd)
                             .font(.body.weight(.semibold))
+                            .buttonStyle(.glassProminent)
+                            .tint(.blue)
                             .disabled(!draft.rows.contains(where: \.isSelected))
                     }
                 }

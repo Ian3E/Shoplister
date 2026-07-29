@@ -1,7 +1,16 @@
 import SwiftUI
+import UIKit
 
 private enum StoreToolbarGlyph {
     static let font = Font.system(size: 15, weight: .semibold)
+}
+
+/// Menu icons that must stay red despite Store’s `.tint(.primary)`.
+private enum StoreEllipsisDestructiveSymbol {
+    static var trash: UIImage {
+        let image = UIImage(systemName: "trash") ?? UIImage()
+        return image.withTintColor(.systemRed, renderingMode: .alwaysOriginal)
+    }
 }
 
 /// Store tab leading toolbar control — opens Settings.
@@ -73,10 +82,16 @@ struct StoreTabEllipsisMenu: View {
                         Label(LocalizedCopy.undoClearList, systemImage: "arrow.uturn.backward")
                     }
                 } else {
+                    // Store NavigationStack uses `.tint(.primary)`, which keeps Menu SF Symbols
+                    // label-colored even with `role: .destructive`. Paint the trash glyph red.
                     Button(role: .destructive) {
                         isPresentingClearAllConfirm = true
                     } label: {
-                        Label(LocalizedCopy.clearList, systemImage: "trash")
+                        Label {
+                            Text(LocalizedCopy.clearList)
+                        } icon: {
+                            Image(uiImage: StoreEllipsisDestructiveSymbol.trash)
+                        }
                     }
                     .disabled(!hasVisibleLines)
                 }
