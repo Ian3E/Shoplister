@@ -7,6 +7,18 @@ import UIKit
 private enum TabSelection: Hashable {
     case store
     case home
+    /// Intercept-only: tap opens pull-to-add, then bounces back to `.store`.
+    case storeAdd
+    /// Intercept-only: tap activates Home searchable, then bounces back to `.home`.
+    case homeSearch
+
+    /// Whether the Store side-add control should be visible for this selection.
+    var showsStoreSideAddControl: Bool {
+        switch self {
+        case .store, .storeAdd: return true
+        case .home, .homeSearch: return false
+        }
+    }
 }
 
 struct ContentView: View {
@@ -48,6 +60,9 @@ struct ContentView: View {
     @State private var newItemAddToShoppingAfterSave = false
     /// Selected root tab (List / Library). Fresh launches open List.
     @State private var selectedTab: TabSelection = .store
+    /// Required so `role: .search` gets Liquid Glass *button* (pinned) placement.
+    /// Text is unused — side taps bounce into Store add / Home search instead.
+    @State private var tabBarSearchText = ""
     /// Pull-to-add presented as a modal sheet (Settings-style) from the List tab.
     @State private var isPresentingPullToAddSheet = false
     /// Drops the sticky pull-to-add search keyboard (e.g. while the first-item explainer is up).
@@ -115,7 +130,7 @@ struct ContentView: View {
                             canShareShoppingList: canShareShoppingList,
                             isStorePullToAddSearchPresented: $isStorePullToAddSearchPresented,
                             onBeginPullToAddSearch: beginStoreTabPullToAdd,
-                            showsAddItemButton: true,
+                            showsAddItemButton: false,
                             onShare: presentShoppingListShare,
                             onSettings: { isPresentingSettings = true },
                             onManageStoreSections: { editGroupsSheetKind = .shopping },
@@ -133,14 +148,46 @@ struct ContentView: View {
                     }
                     .tint(Color.primary)
                 }
+
+                // `role: .search` + searchable on *this* tab + `.tabViewSearchActivation`
+                // → separated clear-glass button (HIG). searchable must not live on the
+                // TabView root — that parks a top search field on List and Library.
+                if selectedTab.showsStoreSideAddControl {
+                    Tab(value: TabSelection.storeAdd, role: .search) {
+                        NavigationStack {
+                            Color.clear
+                                .accessibilityHidden(true)
+                                .searchable(text: $tabBarSearchText)
+                        }
+                    } label: {
+                        Label {
+                            Text(LocalizedCopy.addItem)
+                        } icon: {
+                            Image(uiImage: StoreSideAddSymbol.image(color: tabBarTheme.color))
+                        }
+                    }
+                } else {
+                    Tab(
+                        LocalizedCopy.search,
+                        systemImage: "magnifyingglass",
+                        value: TabSelection.homeSearch,
+                        role: .search
+                    ) {
+                        NavigationStack {
+                            Color.clear
+                                .accessibilityHidden(true)
+                                .searchable(text: $tabBarSearchText)
+                        }
+                    }
+                }
             }
-            // Tab selection/badge theming is applied via UIKit on the tab bar only —
-            // a SwiftUI `.tint` here would cascade into navigation toolbar buttons.
+            .tabViewSearchActivation(.searchTabSelection)
             .modifier(
                 TabBarThemeModifier(
                     theme: tabBarTheme,
                     badgeCount: listTabUncheckedBadge,
-                    selectedTab: selectedTab
+                    selectedTab: selectedTab,
+                    paintsStoreAddSymbol: selectedTab.showsStoreSideAddControl
                 )
             )
             .background {
@@ -218,6 +265,7 @@ struct ContentView: View {
             isHomeToolbarSearchPresented: $isHomeToolbarSearchPresented,
             homeSearchText: $homeInventorySearchText,
             minimizesToolbarSearch: true,
+            showsToolbarSearchButton: false,
             showsRecipesInTopBarLeading: true,
             bottomReservedHeight: 0,
             ignoresSafeArea: false,
@@ -330,10 +378,28 @@ struct ContentView: View {
     var body: some View {
         tabChrome
         .onChange(of: selectedTab) { previous, current in
+            // Intercept side-tab taps: bounce back and trigger the associated action.
+            if current == .storeAdd {
+                tabBarSearchText = ""
+                bounceTabSelection(to: .store)
+                beginStoreTabPullToAdd()
+                return
+            }
+            if current == .homeSearch {
+                tabBarSearchText = ""
+                bounceTabSelection(to: .home)
+                // Present after the bounce so Home’s searchable mounts on the Library
+                // tab (not during the brief search-role selection).
+                DispatchQueue.main.async {
+                    isHomeToolbarSearchPresented = true
+                }
+                return
+            }
             if current == .home {
                 hasVisitedHomeCatalog = true
             }
             if current == .store {
+                isHomeToolbarSearchPresented = false
                 scheduleStoreGesturesExplainerIfNeeded()
             }
             if previous == .home {
@@ -530,6 +596,15 @@ struct ContentView: View {
         isStorePullToAddSearchPresented = false
         isPresentingNewCatalogItem = false
         endStoreTabPullToAdd()
+    }
+
+    /// Immediately returns the tab selection without animation so intercept-only tabs never stay selected.
+    private func bounceTabSelection(to target: TabSelection) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            selectedTab = target
+        }
     }
 
     @ViewBuilder
@@ -866,85 +941,75 @@ private extension View {
     }
 }
 
-/// Themes selected tab symbols and List tab badge. Badge color must go through
-/// `UITabBarAppearance`; selected tint also needs live `UITabBar.tintColor`.
+/// SF Symbol `plus` rendered with `.alwaysOriginal` tint for the Store side-add control.
+private enum StoreSideAddSymbol {
+    static func image(color: Color) -> UIImage {
+        let config = UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
+        let base = UIImage(systemName: "plus", withConfiguration: config) ?? UIImage()
+        return base.withTintColor(UIColor(color), renderingMode: .alwaysOriginal)
+    }
+}
+
+/// Themes selected tab symbols and List tab badge via tint only.
+/// Do not replace `standardAppearance` / `scrollEdgeAppearance` — that can collapse
+/// Liquid Glass’s separated search-button layout back into the main capsule.
 private struct TabBarThemeModifier: ViewModifier {
     var theme: AppThemeSelection
     var badgeCount: Int
     var selectedTab: TabSelection
+    /// When true, restamp the trailing side-tab glyph as a themed + (image only).
+    var paintsStoreAddSymbol: Bool = false
 
     func body(content: Content) -> some View {
         content
-            .onAppear { Self.apply(theme.color) }
+            .onAppear { Self.apply(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol) }
             .onChange(of: theme) { _, newTheme in
-                Self.apply(newTheme.color)
+                Self.apply(newTheme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
             }
             .onChange(of: badgeCount) { _, _ in
-                // Badge remounts can fall back to system red; re-paint after the update.
-                Self.reapplyAfterLayout(theme.color)
+                Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
             }
             .onChange(of: selectedTab) { _, _ in
-                // Selecting the badged List tab remounts the badge with system red for a
-                // frame on modern tab bars; re-paint after the selection settles.
-                Self.reapplyAfterLayout(theme.color)
+                Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
+            }
+            .onChange(of: paintsStoreAddSymbol) { _, paints in
+                Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paints)
             }
     }
 
-    private static func reapplyAfterLayout(_ color: Color) {
+    private static func reapplyAfterLayout(_ color: Color, paintsStoreAddSymbol: Bool) {
         Task { @MainActor in
             await Task.yield()
-            apply(color)
+            apply(color, paintsStoreAddSymbol: paintsStoreAddSymbol)
         }
     }
 
-    private static func apply(_ color: Color) {
+    private static func apply(_ color: Color, paintsStoreAddSymbol: Bool) {
         let uiColor = UIColor(color)
-        let appearance = UITabBarAppearance()
-        appearance.configureWithTransparentBackground()
-        paintChrome(on: appearance, color: uiColor)
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
         UITabBar.appearance().tintColor = uiColor
 
         for scene in UIApplication.shared.connectedScenes {
             guard let windowScene = scene as? UIWindowScene else { continue }
             for window in windowScene.windows {
-                paintLiveTabBars(in: window, color: uiColor)
+                paintLiveTabBars(in: window, color: uiColor, paintsStoreAddSymbol: paintsStoreAddSymbol)
             }
         }
     }
 
-    private static func paintChrome(on appearance: UITabBarAppearance, color: UIColor) {
-        for itemAppearance in [
-            appearance.stackedLayoutAppearance,
-            appearance.inlineLayoutAppearance,
-            appearance.compactInlineLayoutAppearance
-        ] {
-            itemAppearance.normal.badgeBackgroundColor = color
-            itemAppearance.selected.badgeBackgroundColor = color
-            itemAppearance.normal.badgeTextAttributes = [.foregroundColor: UIColor.white]
-            itemAppearance.selected.badgeTextAttributes = [.foregroundColor: UIColor.white]
-            itemAppearance.selected.iconColor = color
-            itemAppearance.selected.titleTextAttributes = [.foregroundColor: color]
-        }
-    }
-
-    private static func paintLiveTabBars(in view: UIView, color: UIColor) {
+    private static func paintLiveTabBars(in view: UIView, color: UIColor, paintsStoreAddSymbol: Bool) {
         if let tabBar = view as? UITabBar {
-            let standard = tabBar.standardAppearance.copy() as UITabBarAppearance
-            paintChrome(on: standard, color: color)
-            tabBar.standardAppearance = standard
-
-            let scrollEdge = tabBar.scrollEdgeAppearance.map { $0.copy() as UITabBarAppearance }
-                ?? standard
-            paintChrome(on: scrollEdge, color: color)
-            tabBar.scrollEdgeAppearance = scrollEdge
-
             tabBar.tintColor = color
             tabBar.items?.forEach { $0.badgeColor = color }
+            // Swap only the glyph — do not replace the tab item (that collapses search separation).
+            if paintsStoreAddSymbol, let side = tabBar.items?.last {
+                let plus = StoreSideAddSymbol.image(color: Color(uiColor: color))
+                side.image = plus
+                side.selectedImage = plus
+                side.title = LocalizedCopy.addItem
+            }
         }
         for subview in view.subviews {
-            paintLiveTabBars(in: subview, color: color)
+            paintLiveTabBars(in: subview, color: color, paintsStoreAddSymbol: paintsStoreAddSymbol)
         }
     }
 }

@@ -44,10 +44,19 @@ struct HomeCatalogSectionTitleBar: View {
     private var titleSpacing: CGFloat { 26 * spacingScale }
     private var titleVerticalPadding: CGFloat { 10 * spacingScale }
 
-    /// Pin the active title to the reading-start edge. With `.catalogListLayoutDirection()`,
-    /// `.leading` is left for English library and right for Hebrew — including when the phone
-    /// language is English (system LTR) but the library is Hebrew.
-    private var activeTitlePinAnchor: UnitPoint { .leading }
+    /// Pin the active title to the reading-start edge.
+    ///
+    /// iOS 27+: `.leading` under forced catalog `layoutDirection` already means reading-start
+    /// (right for Hebrew, left for English), even when the phone is English + library is Hebrew.
+    ///
+    /// iOS 26: scroll anchors behave more like physical edges, so Hebrew/RTL needs `.trailing`
+    /// to pin to the right (reading-start) while LTR stays `.leading`.
+    private var activeTitlePinAnchor: UnitPoint {
+        if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 27 {
+            return .leading
+        }
+        return catalogLayoutDirection == .rightToLeft ? .trailing : .leading
+    }
 
     private var catalogLayoutDirection: LayoutDirection {
         CatalogLayoutMirroring.catalogLayoutDirection(for: catalogLanguage)

@@ -57,6 +57,8 @@ struct InventoryView: View {
     var toolbarSearchUsesSubmitBehavior: Bool = true
     /// EXPERIMENT (tabs): collapse the bottom toolbar search field into a compact trailing button.
     var minimizesToolbarSearch: Bool = false
+    /// When false the bottom-bar search button is hidden (side tab owns search activation).
+    var showsToolbarSearchButton: Bool = true
     /// EXPERIMENT (tabs): Saved lists button in the top bar (leading) instead of next to bottom search.
     var showsRecipesInTopBarLeading: Bool = false
     var bottomReservedHeight: CGFloat = InventoryView.bottomFloatingBarClearance
@@ -114,6 +116,7 @@ struct InventoryView: View {
     /// visible even after homeSearchText is cleared, mirroring pull-to-add behaviour.
     @State private var homeSearchPinnedQuery: String = ""
     @State private var isPresentingRecipes = false
+    @State private var homeToolbarSearchFieldFocusTask: Task<Void, Never>?
 
     init(
         isReorderMode: Binding<Bool> = .constant(false),
@@ -123,6 +126,7 @@ struct InventoryView: View {
         toolbarSearchPrompt: String = LocalizedCopy.searchOrCreateItem,
         toolbarSearchUsesSubmitBehavior: Bool = true,
         minimizesToolbarSearch: Bool = false,
+        showsToolbarSearchButton: Bool = true,
         showsRecipesInTopBarLeading: Bool = false,
         bottomReservedHeight: CGFloat = InventoryView.bottomFloatingBarClearance,
         hidesNavigationBar: Bool = true,
@@ -148,6 +152,7 @@ struct InventoryView: View {
         self.toolbarSearchPrompt = toolbarSearchPrompt
         self.toolbarSearchUsesSubmitBehavior = toolbarSearchUsesSubmitBehavior
         self.minimizesToolbarSearch = minimizesToolbarSearch
+        self.showsToolbarSearchButton = showsToolbarSearchButton
         self.showsRecipesInTopBarLeading = showsRecipesInTopBarLeading
         self.bottomReservedHeight = bottomReservedHeight
         self.hidesNavigationBar = hidesNavigationBar
@@ -293,6 +298,12 @@ struct InventoryView: View {
     /// Drives `HomeToolbarSearchModifier` / return-submit (defers bottom-bar search until push settles).
     private var isHomeToolbarSearchChromeActive: Bool {
         guard usesHomeToolbarSearch else { return false }
+        // Side-tab owns activation (`showsToolbarSearchButton == false`): only mount
+        // searchable while presented. Keeping it mounted idle parks a top search field,
+        // and with no bottom `DefaultToolbarItem` iOS has nowhere else to put it.
+        if !showsToolbarSearchButton {
+            return isHomeToolbarSearchPresented
+        }
         // EXPERIMENT (tabs): keep searchable mounted across Edit/Done so List reorder/select
         // handle animations aren't torn down. Bottom bar always hosts minimized search.
         if minimizesToolbarSearch { return true }
@@ -444,6 +455,29 @@ struct InventoryView: View {
     private func dismissToolbarSearchBeforePresentingItemEditorIfNeeded() {
         guard usesHomeToolbarSearch, isHomeToolbarSearchPresented else { return }
         dismissToolbarSearchForEditPresentation()
+    }
+
+    /// Focuses the toolbar search field after the bottom chrome mounts (side-tab activation path).
+    private func scheduleHomeToolbarSearchFieldFocus() {
+        homeToolbarSearchFieldFocusTask?.cancel()
+        homeToolbarSearchFieldFocusTask = Task { @MainActor in
+            // Side-tab path mounts searchable + bottom search item in the same turn as
+            // `isPresented = true`. Retry across a few layout passes until the controller exists.
+            for attempt in 0..<16 {
+                guard !Task.isCancelled, isHomeToolbarSearchPresented else { return }
+                await Task.yield()
+                if attempt > 0, attempt % 3 == 0 {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+                guard !Task.isCancelled, isHomeToolbarSearchPresented else { return }
+                if HomeToolbarSearchCacheCleaner.focusToolbarSearchFieldIfPossible() {
+                    return
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled, isHomeToolbarSearchPresented else { return }
+            _ = HomeToolbarSearchCacheCleaner.focusToolbarSearchFieldIfPossible()
+        }
     }
 
     private func toggleHomeItemShopping(
@@ -713,19 +747,6 @@ struct InventoryView: View {
                         )
                     }
                 }
-                .homeCatalogSectionTitleSafeAreaBar(isPresented: showsHomeCatalogSectionTitleBar) {
-                    HomeCatalogSectionTitleBar(
-                        sections: homeCatalogSectionTitles,
-                        activeSectionID: activeSectionID,
-                        suppressBarSync: isProgrammaticListScroll,
-                        onTitleTap: scrollHomeCatalogListToSection
-                    )
-                    .catalogListLayoutDirection()
-                    .dynamicTypeSize(catalogTextDynamicTypeSize)
-                    .animation(AppTextSize.layoutCommitAnimation, value: textSizeRaw)
-                }
-                .tint(homeListEditMode == .active ? appTheme.color : Color.primary)
-                .modifier(ListDragInteractionModifier(enabled: homeListEditMode == .active))
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .dynamicTypeSize(catalogTextDynamicTypeSize)
@@ -743,6 +764,8 @@ struct InventoryView: View {
                 .onPreferenceChange(HomeItemNameGlobalFrameKey.self) { frames in
                     homeItemNameGlobalFrames = frames
                 }
+                // Attach before the section-title safe-area bar — that bar’s horizontal
+                // `ScrollView` would otherwise make `onScrollGeometryChange` see two scroll views.
                 .onScrollGeometryChange(for: HomeCatalogListScrollSnapshot.self) { geometry in
                     HomeCatalogListScrollSnapshot(
                         viewportHeight: geometry.containerSize.height,
@@ -752,6 +775,19 @@ struct InventoryView: View {
                     listScrollSnapshot = snapshot
                     updateHomeCatalogActiveSection(anchors: rowAnchors)
                 }
+                .homeCatalogSectionTitleSafeAreaBar(isPresented: showsHomeCatalogSectionTitleBar) {
+                    HomeCatalogSectionTitleBar(
+                        sections: homeCatalogSectionTitles,
+                        activeSectionID: activeSectionID,
+                        suppressBarSync: isProgrammaticListScroll,
+                        onTitleTap: scrollHomeCatalogListToSection
+                    )
+                    .catalogListLayoutDirection()
+                    .dynamicTypeSize(catalogTextDynamicTypeSize)
+                    .animation(AppTextSize.layoutCommitAnimation, value: textSizeRaw)
+                }
+                .tint(homeListEditMode == .active ? appTheme.color : Color.primary)
+                .modifier(ListDragInteractionModifier(enabled: homeListEditMode == .active))
                 .onAppear {
                     listScrollSnapshot = HomeCatalogListScrollSnapshot(
                         viewportHeight: listGeometry.size.height,
@@ -939,6 +975,8 @@ struct InventoryView: View {
                 liquidGlassToolbarSearchAttachTask = nil
                 homeToolbarSearchPlaceholderPinTask?.cancel()
                 homeToolbarSearchPlaceholderPinTask = nil
+                homeToolbarSearchFieldFocusTask?.cancel()
+                homeToolbarSearchFieldFocusTask = nil
                 // Tabs: leave searchable + list mounted; tearing them down remounts the List
                 // and resets scroll when returning from Store.
                 guard usesHomeToolbarSearch, !minimizesToolbarSearch else { return }
@@ -967,6 +1005,11 @@ struct InventoryView: View {
             .onChange(of: isHomeToolbarSearchPresented) { _, presented in
                 if !presented {
                     homeSearchPinnedQuery = ""
+                    homeToolbarSearchFieldFocusTask?.cancel()
+                    homeToolbarSearchFieldFocusTask = nil
+                }
+                if presented, !showsToolbarSearchButton {
+                    scheduleHomeToolbarSearchFieldFocus()
                 }
                 syncActiveSectionToVisibleTitles()
             }
@@ -1003,7 +1046,7 @@ struct InventoryView: View {
                     prompt: (minimizesToolbarSearch || !showsHomeEditToolbarChrome)
                         ? toolbarSearchPrompt
                         : LocalizedCopy.search,
-                    minimizes: minimizesToolbarSearch
+                    minimizes: minimizesToolbarSearch && showsToolbarSearchButton
                 )
             )
             .modifier(
@@ -1224,8 +1267,10 @@ struct InventoryView: View {
                     ToolbarCatalogAddButton(action: onToolbarAddItem)
                 }
             }
-            ToolbarSpacer(.flexible, placement: .bottomBar)
-            DefaultToolbarItem(kind: .search, placement: .bottomBar)
+            if showsToolbarSearchButton || isHomeToolbarSearchPresented {
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+                DefaultToolbarItem(kind: .search, placement: .bottomBar)
+            }
         } else if showsHomeBottomEditToolbarChrome {
             ToolbarItem(placement: .bottomBar) {
                 homeCatalogMoveMenuControl
@@ -1234,16 +1279,20 @@ struct InventoryView: View {
                 homeCatalogDeleteControl
             }
             ToolbarSpacer(.flexible, placement: .bottomBar)
-            DefaultToolbarItem(kind: .search, placement: .bottomBar)
-            ToolbarSpacer(.fixed, placement: .bottomBar)
+            if showsToolbarSearchButton || isHomeToolbarSearchPresented {
+                DefaultToolbarItem(kind: .search, placement: .bottomBar)
+                ToolbarSpacer(.fixed, placement: .bottomBar)
+            }
             if let onToolbarAddItem {
                 ToolbarItem(placement: .bottomBar) {
                     ToolbarCatalogAddButton(action: onToolbarAddItem)
                 }
             }
         } else if usesHomeToolbarSearch, isHomeToolbarSearchChromeActive {
-            DefaultToolbarItem(kind: .search, placement: .bottomBar)
-            ToolbarSpacer(.fixed, placement: .bottomBar)
+            if showsToolbarSearchButton || isHomeToolbarSearchPresented {
+                DefaultToolbarItem(kind: .search, placement: .bottomBar)
+                ToolbarSpacer(.fixed, placement: .bottomBar)
+            }
             ToolbarItem(placement: .bottomBar) {
                 HomeCatalogRecipesToolbarButton {
                     isPresentingRecipes = true
@@ -1322,15 +1371,52 @@ enum HomeToolbarSearchCacheCleaner {
         }
     }
 
+    /// Activates the search controller (if attached) and focuses the search field.
+    /// Used when the side tab triggers search and the bottom toolbar item may not be visible yet.
+    /// - Returns: `true` when a search field was found and focused.
+    @discardableResult
+    static func focusToolbarSearchFieldIfPossible() -> Bool {
+        guard let window = keyWindow,
+              let root = window.rootViewController else {
+            return focusToolbarSearchField()
+        }
+        // Prefer the selected tab’s navigation item so we don’t focus the empty
+        // search-role tab’s searchable chrome (or Store) after a side-tab bounce.
+        if let item = selectedTabNavigationItem(from: root),
+           let searchController = item.searchController {
+            searchController.isActive = true
+            let field = searchController.searchBar.searchTextField
+            if field.window != nil {
+                return field.becomeFirstResponder()
+            }
+        }
+        // Walk presented stack (sheets).
+        var top = root
+        while let presented = top.presentedViewController {
+            top = presented
+        }
+        if top !== root,
+           let item = navigationItem(in: top),
+           let searchController = item.searchController {
+            searchController.isActive = true
+            let field = searchController.searchBar.searchTextField
+            if field.window != nil {
+                return field.becomeFirstResponder()
+            }
+        }
+        return focusToolbarSearchField()
+    }
+
     /// Focuses the bottom-toolbar search field when a tap misses its Liquid Glass hit target.
-    static func focusToolbarSearchField() {
-        guard let window = keyWindow else { return }
+    @discardableResult
+    static func focusToolbarSearchField() -> Bool {
+        guard let window = keyWindow else { return false }
         for searchBar in allDescendants(ofType: UISearchBar.self, in: window) {
             let field = searchBar.searchTextField
             guard field.window != nil else { continue }
-            field.becomeFirstResponder()
-            return
+            return field.becomeFirstResponder()
         }
+        return false
     }
 
     /// Focuses search inside the topmost presented sheet so the keyboard can rise with presentation
@@ -1363,13 +1449,47 @@ enum HomeToolbarSearchCacheCleaner {
         }
     }
 
+    private static func selectedTabNavigationItem(from root: UIViewController) -> UINavigationItem? {
+        if let tabBarController = firstDescendant(ofType: UITabBarController.self, in: root)
+            ?? (root as? UITabBarController) {
+            if let selected = tabBarController.selectedViewController {
+                return navigationItem(in: selected)
+            }
+        }
+        return navigationItem(in: root)
+    }
+
+    private static func firstDescendant<T: UIViewController>(
+        ofType type: T.Type,
+        in root: UIViewController
+    ) -> T? {
+        if let match = root as? T { return match }
+        for child in root.children {
+            if let found = firstDescendant(ofType: type, in: child) {
+                return found
+            }
+        }
+        return nil
+    }
+
     private static func navigationItem(in viewController: UIViewController) -> UINavigationItem? {
+        if let tabBarController = viewController as? UITabBarController {
+            if let selected = tabBarController.selectedViewController {
+                return navigationItem(in: selected)
+            }
+            return nil
+        }
         if let navigationController = viewController as? UINavigationController {
             return navigationController.topViewController?.navigationItem
         }
         if let navigationController = viewController.navigationController {
             return navigationController.topViewController?.navigationItem
                 ?? viewController.navigationItem
+        }
+        for child in viewController.children {
+            if let item = navigationItem(in: child) {
+                return item
+            }
         }
         return viewController.navigationItem
     }

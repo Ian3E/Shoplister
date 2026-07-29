@@ -38,6 +38,8 @@ struct ThemeSettingsView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .scrollDisabled(true)
+                // Swatch row is app chrome — follow phone language, not library language.
+                .environment(\.layoutDirection, AppSystemLocale.interfaceLayoutDirection)
                 .frame(height: Self.colorPickerSectionHeight)
 
                 previewHeader
@@ -144,19 +146,25 @@ struct ThemeSettingsView: View {
     }
 }
 
-/// Floating "+" button for the theme preview — mirrors the Store tab open-home control.
+/// Clear-glass "+" for the theme preview — mirrors the Store side-tab add control
+/// (separated Liquid Glass circle + theme-colored symbol).
 private struct SettingsThemePreviewAddButton: View {
+    @Environment(\.appTheme) private var appTheme
+
+    private static let buttonDiameter = CatalogToolbarTapChrome.iconTapDiameter + 10
+    private static let symbolPointSize: CGFloat = 21
+
     var body: some View {
         Button(action: {}) {
             Image(systemName: "plus")
-                .font(.system(size: 24, weight: .semibold))
-                .frame(width: CatalogToolbarTapChrome.iconTapDiameter, height: CatalogToolbarTapChrome.iconTapDiameter)
+                .font(.system(size: Self.symbolPointSize, weight: .semibold))
+                .foregroundStyle(appTheme.color)
+                .frame(width: Self.buttonDiameter, height: Self.buttonDiameter)
                 .contentShape(Circle())
         }
-        .buttonStyle(.glassProminent)
+        .buttonStyle(.glass)
         .buttonBorderShape(.circle)
-        .appThemeTint()
-        .accessibilityLabel(LocalizedCopy.openHomeLibrary)
+        .accessibilityLabel(LocalizedCopy.addItem)
         .allowsHitTesting(false)
     }
 }

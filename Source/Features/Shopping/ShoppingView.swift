@@ -436,7 +436,6 @@ struct ShoppingView: View {
     }
 
     private func beginStorePullToAddSearch() {
-        guard showsAddItemButton else { return }
         onBeginPullToAddSearch()
     }
 

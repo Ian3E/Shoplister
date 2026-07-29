@@ -160,33 +160,64 @@ private final class CatalogListUIKitChromeDirectionEnforcer: UIView {
 
     func applyIfNeeded() {
         guard window != nil else { return }
-        var ancestor: UIView? = superview
-        for _ in 0..<8 {
-            guard let container = ancestor else { break }
-            if let collectionView = Self.firstDescendant(ofType: UICollectionView.self, in: container) {
+
+        // Prefer a scroll view that contains this enforcer.
+        var current: UIView? = superview
+        while let view = current {
+            if let scrollView = view as? UIScrollView {
                 CatalogLayoutMirroring.applyUIKitListChromeDirectionIfNeeded(
-                    to: collectionView,
+                    to: scrollView,
                     catalogLanguage: catalogLanguage
                 )
                 return
             }
-            if let tableView = Self.firstDescendant(ofType: UITableView.self, in: container) {
-                CatalogLayoutMirroring.applyUIKitListChromeDirectionIfNeeded(
-                    to: tableView,
-                    catalogLanguage: catalogLanguage
-                )
-                return
-            }
-            ancestor = container.superview
+            current = view.superview
+        }
+
+        // SwiftUI List `.background` hosts often sit beside the scroll view under a shared
+        // parent. Only inspect that shared parent / its direct sibling scroll views — never
+        // walk up to a screen VStack and retarget an unrelated List (e.g. theme color picker).
+        guard let parent = superview else { return }
+        if let scrollView = Self.listScrollView(adjacentTo: parent) {
+            CatalogLayoutMirroring.applyUIKitListChromeDirectionIfNeeded(
+                to: scrollView,
+                catalogLanguage: catalogLanguage
+            )
         }
     }
 
-    private static func firstDescendant<T: UIView>(ofType type: T.Type, in view: UIView) -> T? {
-        if let match = view as? T { return match }
-        for subview in view.subviews {
-            if let found = firstDescendant(ofType: type, in: subview) { return found }
+    /// Finds a table/collection that shares `host`’s parent (List background placement).
+    private static func listScrollView(adjacentTo host: UIView) -> UIScrollView? {
+        if let nested = firstListScrollView(in: host) {
+            return nested
         }
-        return nil
+        guard let container = host.superview else { return nil }
+        for sibling in container.subviews where sibling !== host {
+            if (sibling is UICollectionView || sibling is UITableView),
+               let scrollView = sibling as? UIScrollView {
+                return scrollView
+            }
+        }
+        // Shared List host: exactly one list scroll view under the parent, and `host` is
+        // a sibling branch (not a screen-level VStack that also owns other Lists).
+        let lists = listScrollViews(in: container)
+        guard lists.count == 1, let candidate = lists.first else { return nil }
+        return candidate
+    }
+
+    private static func listScrollViews(in view: UIView) -> [UIScrollView] {
+        var matches: [UIScrollView] = []
+        if (view is UICollectionView || view is UITableView), let scrollView = view as? UIScrollView {
+            matches.append(scrollView)
+        }
+        for subview in view.subviews {
+            matches.append(contentsOf: listScrollViews(in: subview))
+        }
+        return matches
+    }
+
+    private static func firstListScrollView(in view: UIView) -> UIScrollView? {
+        listScrollViews(in: view).first
     }
 }
 

@@ -54,7 +54,13 @@ struct SettingsStoreListPreview: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.shoppingListBackground)
         .environment(\.appContentLanguage, catalogLanguage)
-        .catalogListLayoutDirection()
+        // Preview rows follow library language. Use SwiftUI direction only — the UIKit
+        // list-chrome sync in `catalogListLayoutDirection()` can walk up and retarget the
+        // theme color-picker List above this preview.
+        .environment(
+            \.layoutDirection,
+            CatalogLayoutMirroring.catalogLayoutDirection(for: catalogLanguage)
+        )
         .dynamicTypeSize(textSize.dynamicTypeSize)
         .allowsHitTesting(false)
     }
