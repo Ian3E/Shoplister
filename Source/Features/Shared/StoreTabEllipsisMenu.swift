@@ -5,11 +5,20 @@ private enum StoreToolbarGlyph {
     static let font = Font.system(size: 15, weight: .semibold)
 }
 
-/// Menu icons that must stay red despite Store’s `.tint(.primary)`.
-private enum StoreEllipsisDestructiveSymbol {
-    static var trash: UIImage {
-        let image = UIImage(systemName: "trash") ?? UIImage()
-        return image.withTintColor(.systemRed, renderingMode: .alwaysOriginal)
+/// Menu icons painted with `.alwaysOriginal` so Store’s `.tint(.primary)` cannot keep
+/// disabled glyphs label-colored (or keep Clear List red while the row is disabled).
+private enum StoreEllipsisMenuSymbol {
+    static func image(systemName: String, enabled: Bool, destructive: Bool = false) -> UIImage {
+        let color: UIColor
+        if !enabled {
+            color = .tertiaryLabel
+        } else if destructive {
+            color = .systemRed
+        } else {
+            color = .label
+        }
+        let image = UIImage(systemName: systemName) ?? UIImage()
+        return image.withTintColor(color, renderingMode: .alwaysOriginal)
     }
 }
 
@@ -68,7 +77,11 @@ struct StoreTabEllipsisMenu: View {
                     }
                 } else {
                     Button(action: onClearChecked) {
-                        Label(LocalizedCopy.clearChecked, systemImage: "xmark.app")
+                        ellipsisLabel(
+                            LocalizedCopy.clearChecked,
+                            systemName: "xmark.app",
+                            enabled: canClearChecked
+                        )
                     }
                     .disabled(!canClearChecked)
                 }
@@ -83,26 +96,36 @@ struct StoreTabEllipsisMenu: View {
                     }
                 } else {
                     // Store NavigationStack uses `.tint(.primary)`, which keeps Menu SF Symbols
-                    // label-colored even with `role: .destructive`. Paint the trash glyph red.
+                    // label-colored even with `role: .destructive`. Paint the trash glyph red
+                    // when enabled; tertiary grey when the row is disabled.
                     Button(role: .destructive) {
                         isPresentingClearAllConfirm = true
                     } label: {
-                        Label {
-                            Text(LocalizedCopy.clearList)
-                        } icon: {
-                            Image(uiImage: StoreEllipsisDestructiveSymbol.trash)
-                        }
+                        ellipsisLabel(
+                            LocalizedCopy.clearList,
+                            systemName: "trash",
+                            enabled: hasVisibleLines,
+                            destructive: true
+                        )
                     }
                     .disabled(!hasVisibleLines)
                 }
 
                 Button(action: onShare) {
-                    Label(LocalizedCopy.shareList, systemImage: "square.and.arrow.up")
+                    ellipsisLabel(
+                        LocalizedCopy.shareList,
+                        systemName: "square.and.arrow.up",
+                        enabled: canShareShoppingList
+                    )
                 }
                 .disabled(!canShareShoppingList)
 
                 Button(action: onSaveAsRecipe) {
-                    Label(LocalizedCopy.saveList, systemImage: "square.and.arrow.down")
+                    ellipsisLabel(
+                        LocalizedCopy.saveList,
+                        systemName: "square.and.arrow.down",
+                        enabled: hasUncheckedLines
+                    )
                 }
                 .disabled(!hasUncheckedLines)
             }
@@ -116,5 +139,22 @@ struct StoreTabEllipsisMenu: View {
         .controlSize(.small)
         .catalogToolbarCircularTapTarget()
         .accessibilityLabel(LocalizedCopy.menu)
+    }
+
+    private func ellipsisLabel(
+        _ title: String,
+        systemName: String,
+        enabled: Bool,
+        destructive: Bool = false
+    ) -> some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(uiImage: StoreEllipsisMenuSymbol.image(
+                systemName: systemName,
+                enabled: enabled,
+                destructive: destructive
+            ))
+        }
     }
 }
