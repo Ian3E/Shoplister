@@ -941,6 +941,7 @@ struct InventoryView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 28)
+                .offset(y: 10)
             Spacer(minLength: 0)
         }
         .padding(.bottom, usesHomeToolbarSearch ? Self.toolbarSearchFieldClearance : 0)

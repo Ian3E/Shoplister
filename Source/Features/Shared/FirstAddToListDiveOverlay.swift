@@ -104,26 +104,64 @@ enum ListTabIconFrameLocator {
     private static func listTabIconCenter(in root: UIView) -> CGPoint? {
         guard let tabBar = findTabBar(in: root) else { return nil }
         let buttons = tabBarButtons(in: tabBar)
+        guard !buttons.isEmpty else { return nil }
+
         let listTitle = LocalizedCopy.tabList
+        let itemsTitle = LocalizedCopy.tabLibrary
+        let sideTitles = [LocalizedCopy.addItem, LocalizedCopy.search]
 
-        let listButton =
-            buttons.first(where: { buttonMatchesListTab($0, listTitle: listTitle) })
-            ?? buttons.sorted { $0.frame.minX < $1.frame.minX }.first
+        if let listButton = buttons.first(where: {
+            buttonMatchesTitle($0, title: listTitle) && !buttonMatchesTitle($0, title: itemsTitle)
+        }) {
+            return center(of: listButton)
+        }
 
-        guard let button = listButton else { return nil }
+        if let listButton = buttons.first(where: { buttonContainsSystemImageHint($0, hint: "checklist") }) {
+            return center(of: listButton)
+        }
 
+        // Capsule primary tabs only — never the separated side control or Items tab.
+        let primary = buttons.filter { button in
+            !sideTitles.contains(where: { buttonMatchesTitle(button, title: $0) })
+                && !buttonMatchesTitle(button, title: itemsTitle)
+                && !buttonContainsSystemImageHint(button, hint: "square.grid")
+                && !buttonContainsSystemImageHint(button, hint: "magnifyingglass")
+                && !buttonContainsSystemImageHint(button, hint: "plus")
+        }
+        let candidates = primary.isEmpty ? buttons : primary
+        let isRTL = tabBar.effectiveUserInterfaceLayoutDirection == .rightToLeft
+        // List is the first root tab: leading edge of the capsule in LTR, trailing in RTL.
+        let sorted = candidates.sorted {
+            isRTL ? $0.frame.maxX > $1.frame.maxX : $0.frame.minX < $1.frame.minX
+        }
+        guard let button = sorted.first else { return nil }
+        return center(of: button)
+    }
+
+    private static func center(of button: UIView) -> CGPoint {
         if let image = preferredImageView(in: button) {
             return image.convert(CGPoint(x: image.bounds.midX, y: image.bounds.midY), to: nil)
         }
         return button.convert(CGPoint(x: button.bounds.midX, y: button.bounds.midY), to: nil)
     }
 
-    private static func buttonMatchesListTab(_ button: UIView, listTitle: String) -> Bool {
-        if let label = button.accessibilityLabel, label.localizedCaseInsensitiveContains(listTitle) {
+    private static func buttonMatchesTitle(_ button: UIView, title: String) -> Bool {
+        guard !title.isEmpty else { return false }
+        if let label = button.accessibilityLabel, label.localizedCaseInsensitiveContains(title) {
             return true
         }
         for label in descendantLabels(in: button) {
-            if label.text?.localizedCaseInsensitiveContains(listTitle) == true {
+            if label.text?.localizedCaseInsensitiveContains(title) == true {
+                return true
+            }
+        }
+        return false
+    }
+
+    private static func buttonContainsSystemImageHint(_ button: UIView, hint: String) -> Bool {
+        for imageView in descendants(of: button).compactMap({ $0 as? UIImageView }) {
+            let description = String(describing: imageView.image)
+            if description.localizedCaseInsensitiveContains(hint) {
                 return true
             }
         }
@@ -213,8 +251,7 @@ struct FirstAddToListDiveOverlay: View {
                         .foregroundStyle(appTheme.color)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
-                        // AnimatableModifier samples the bezier each frame; plain `.position`
-                        // would let SwiftUI lerp start→end in a straight line.
+                        // AnimatableModifier samples each frame for a straight vertical dive.
                         .modifier(
                             FirstAddDiveFlightModifier(
                                 progress: diveProgress,
@@ -235,7 +272,8 @@ struct FirstAddToListDiveOverlay: View {
                         .background(Capsule(style: .continuous).fill(appTheme.color))
                         .offset(y: -42 * plusOneRise)
                         .opacity(plusOneOpacity)
-                        .position(localTarget)
+                        // Keep +1 on the dive’s vertical line (source x), not a lateral tab target.
+                        .position(x: localStart.x, y: localTarget.y)
                         .allowsHitTesting(false)
                 }
             }
@@ -285,7 +323,8 @@ struct FirstAddToListDiveOverlay: View {
     }
 }
 
-/// Drives flight along a quadratic bezier by animating `progress` (0…1).
+/// Drives a straight vertical dive by animating `progress` (0…1).
+/// X stays at the source; only Y moves — no parabolic lift or lateral drift.
 private struct FirstAddDiveFlightModifier: AnimatableModifier {
     var progress: CGFloat
     var start: CGPoint
@@ -298,25 +337,14 @@ private struct FirstAddDiveFlightModifier: AnimatableModifier {
 
     func body(content: Content) -> some View {
         let t = min(1, max(0, progress))
-        let point = Self.parabolicPoint(t: t, start: start, end: end)
+        let point = CGPoint(
+            x: start.x,
+            y: start.y + (end.y - start.y) * t
+        )
         let travelOpacity: CGFloat = t < 0.88 ? 1 : max(0, (1 - t) / 0.12)
 
         content
             .opacity(travelOpacity)
             .position(point)
-    }
-
-    /// Start → raised mid control → end (clearly up, then down into the tab).
-    private static func parabolicPoint(t: CGFloat, start: CGPoint, end: CGPoint) -> CGPoint {
-        let lift: CGFloat = 100
-        let control = CGPoint(
-            x: start.x + (end.x - start.x) * 0.45,
-            y: min(start.y, end.y) - lift
-        )
-        let u = 1 - t
-        return CGPoint(
-            x: u * u * start.x + 2 * u * t * control.x + t * t * end.x,
-            y: u * u * start.y + 2 * u * t * control.y + t * t * end.y
-        )
     }
 }

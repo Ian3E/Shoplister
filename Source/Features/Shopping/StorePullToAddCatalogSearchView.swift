@@ -363,6 +363,7 @@ struct StorePullToAddCatalogSearchView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 28)
+                .offset(y: -15)
             Spacer(minLength: 0)
         }
         .padding(.top, Self.toolbarSearchCollapsedTopChromeClearance)

@@ -23,7 +23,7 @@ struct WelcomeExplainerOverlay: View {
                 true
             ),
             (
-                "books.vertical.fill",
+                "square.grid.2x2.fill",
                 LocalizedCopy.welcomeExplainerHomeLibraryGrouping,
                 false
             ),
@@ -118,11 +118,11 @@ struct WelcomeExplainerOverlay: View {
     }
 
     private func welcomeTipRow(systemImage: String, detail: String, usesMarkdown: Bool) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Image(systemName: systemImage)
-                .font(.body.weight(.semibold))
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 24, alignment: .center)
+                .frame(width: 28, alignment: .center)
                 .accessibilityHidden(true)
 
             Group {

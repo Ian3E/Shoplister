@@ -913,6 +913,7 @@ struct ShoppingView: View {
     private var shoppingEmptyStateOverlay: some View {
         ShoppingEmptyStateView(
             showsAddHint: showsEmptyAddHint,
+            showsCheckmark: emptyAddHintCompletedListCount > 0 || pendingEmptyCheckmarkDraw,
             textOpacity: emptyShoppingRevealOpacity,
             pendingCheckmarkDraw: $pendingEmptyCheckmarkDraw
         )

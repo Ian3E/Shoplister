@@ -142,7 +142,7 @@ struct ContentView: View {
                 }
                 .badge(listTabUncheckedBadge)
 
-                Tab(LocalizedCopy.tabLibrary, systemImage: "books.vertical", value: TabSelection.home) {
+                Tab(LocalizedCopy.tabLibrary, systemImage: "square.grid.2x2.fill", value: TabSelection.home) {
                     NavigationStack {
                         homeCatalogTabScreen
                     }
@@ -181,6 +181,10 @@ struct ContentView: View {
                     }
                 }
             }
+            // Theme the selected tab glyph immediately. Each tab’s `NavigationStack` keeps
+            // `.tint(Color.primary)` so toolbars don’t pick up the accent — without this,
+            // UIKit re-tint on tab change lags a frame and flashes system blue.
+            .tint(tabBarTheme.color)
             .tabViewSearchActivation(.searchTabSelection)
             .modifier(
                 TabBarThemeModifier(
@@ -656,7 +660,6 @@ struct ContentView: View {
         guard !hasSeenWelcomeExplainer else { return }
         welcomeExplainerTask?.cancel()
         welcomeExplainerTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(0.5))
             guard !Task.isCancelled else { return }
             guard !hasSeenWelcomeExplainer else { return }
             guard fullWindowOverlay.kind == nil else { return }
@@ -684,11 +687,12 @@ struct ContentView: View {
         guard !hasSeenFirstShoppingItemExplainer else { return }
         guard !firstAddToListDive.isActive else { return }
         firstShoppingItemExplainerTask?.cancel()
-        let resolvedTarget =
-            listTabDiveTargetPoint == .zero
-            ? (ListTabIconFrameLocator.listTabIconCenterInWindow() ?? listTabDiveFallbackPoint)
-            : listTabDiveTargetPoint
-        activeDiveTargetPoint = resolvedTarget
+        // Straight vertical dive: keep the item’s x, use List-tab bar height for y.
+        let listTabY =
+            (listTabDiveTargetPoint == .zero
+                ? (ListTabIconFrameLocator.listTabIconCenterInWindow() ?? listTabDiveFallbackPoint)
+                : listTabDiveTargetPoint).y
+        activeDiveTargetPoint = CGPoint(x: sourceFrame.midX, y: listTabY)
         suppressListTabBadgeForFirstAddDive = true
         blocksInteractionUntilFirstItemExplainer = true
         firstAddToListDive.begin(itemName: itemName, sourceFrame: sourceFrame)
@@ -970,9 +974,13 @@ private struct TabBarThemeModifier: ViewModifier {
                 Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
             }
             .onChange(of: selectedTab) { _, _ in
+                // Immediate + deferred: tab swaps remount the side control and can reset
+                // UIKit tint for a frame without the synchronous pass.
+                Self.apply(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
                 Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
             }
             .onChange(of: paintsStoreAddSymbol) { _, paints in
+                Self.apply(theme.color, paintsStoreAddSymbol: paints)
                 Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paints)
             }
     }
