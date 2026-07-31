@@ -39,11 +39,12 @@ The app entry point is `ShoplisterApp` (`Source/ShoplisterApp.swift`). Resources
 | **Share extension** | Plain text shared into Shoplister is matched to the catalog; pending ops merge when the main app opens |
 | **Settings** | Text size, appearance, language, backup/restore, etc. |
 
-## Privacy policy (GitHub Pages)
+## Privacy & support (GitHub Pages)
 
-The privacy policy lives at [`docs/privacy.html`](docs/privacy.html). The app links to:
-
-**https://ian3e.github.io/Shoplister/privacy.html**
+| Page | Path | Public URL |
+|------|------|------------|
+| Support | [`docs/support.html`](docs/support.html) | **https://ian3e.github.io/Shoplister/support.html** |
+| Privacy Policy | [`docs/privacy.html`](docs/privacy.html) | **https://ian3e.github.io/Shoplister/privacy.html** |
 
 To publish after pushing to GitHub:
 
@@ -52,7 +53,7 @@ To publish after pushing to GitHub:
 3. Choose branch **main** and folder **/docs**
 4. Save; GitHub will serve the site at `https://ian3e.github.io/Shoplister/`
 
-Use the same URL in **App Store Connect** → App Privacy → Privacy Policy URL.
+Use these URLs in **App Store Connect** (Support URL and Privacy Policy URL).
 
 ## App Store submission checklist
 
@@ -71,7 +72,8 @@ Create a **new app** for bundle ID `com.ianengelman.shoplister`.
 | Field | Value |
 |-------|--------|
 | Privacy Policy URL | `https://ian3e.github.io/Shoplister/privacy.html` |
-| Support | `support.shoplister@gmail.com` |
+| Support URL | `https://ian3e.github.io/Shoplister/support.html` |
+| Support email | `support.shoplister@gmail.com` |
 
 **App Privacy questionnaire (summary):**
 
