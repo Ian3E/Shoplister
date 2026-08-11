@@ -966,9 +966,15 @@ private struct TabBarThemeModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onAppear { Self.apply(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol) }
+            .onAppear {
+                // Immediate + deferred: SwiftUI attaches `.badge` after first layout, and
+                // that pass uses the default red unless we stamp `badgeColor` again.
+                Self.apply(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
+                Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
+            }
             .onChange(of: theme) { _, newTheme in
                 Self.apply(newTheme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
+                Self.reapplyAfterLayout(newTheme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
             }
             .onChange(of: badgeCount) { _, _ in
                 Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
@@ -989,12 +995,16 @@ private struct TabBarThemeModifier: ViewModifier {
         Task { @MainActor in
             await Task.yield()
             apply(color, paintsStoreAddSymbol: paintsStoreAddSymbol)
+            await Task.yield()
+            apply(color, paintsStoreAddSymbol: paintsStoreAddSymbol)
         }
     }
 
     private static func apply(_ color: Color, paintsStoreAddSymbol: Bool) {
         let uiColor = UIColor(color)
         UITabBar.appearance().tintColor = uiColor
+        // Future tab items (including the first `.badge` attach) inherit theme, not system red.
+        UITabBarItem.appearance().badgeColor = uiColor
 
         for scene in UIApplication.shared.connectedScenes {
             guard let windowScene = scene as? UIWindowScene else { continue }
