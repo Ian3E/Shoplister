@@ -13,6 +13,17 @@ struct ShoppingView: View {
     private static let emptyShoppingRevealAnimation = Animation.easeOut(duration: 0.48)
     /// List bottom inset when the open-home control lives in the bottom toolbar (system lays out bar inset).
     private static let bottomFloatingBarClearance: CGFloat = 0
+    /// Gap between the toast and the screen bottom, on top of the device inset (home indicator).
+    private static let storeToastGapAboveDeviceInset: CGFloat = 0
+
+    private static var storeToastBottomPadding: CGFloat {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let window = scenes
+            .first(where: { $0.activationState == .foregroundActive })?
+            .windows.first(where: \.isKeyWindow)
+        return (window?.safeAreaInsets.bottom ?? 0) + storeToastGapAboveDeviceInset
+    }
+
     /// Readable list width on iPad and other regular horizontal size classes.
     private static let regularWidthClassListMaxWidth: CGFloat = 640
 
@@ -300,6 +311,11 @@ struct ShoppingView: View {
     /// so the shopping-dependent Store toolbar can never tear down the search field on adds.
     var onBeginPullToAddSearch: () -> Void
     var onAddItem: (() -> Void)?
+    /// + long-press menu: **All items**, **Saved lists**, **Create item** (**Add item** uses
+    /// `onBeginPullToAddSearch`). The menu is omitted when these are nil.
+    var onShowAllItems: (() -> Void)?
+    var onSavedLists: (() -> Void)?
+    var onCreateItem: (() -> Void)?
     var showsAddItemButton: Bool
     let canShareShoppingList: Bool
     let onShare: () -> Void
@@ -314,7 +330,10 @@ struct ShoppingView: View {
         onShare: @escaping () -> Void,
         onSettings: @escaping () -> Void,
         onManageStoreSections: @escaping () -> Void,
-        onAddItem: (() -> Void)? = nil
+        onAddItem: (() -> Void)? = nil,
+        onShowAllItems: (() -> Void)? = nil,
+        onSavedLists: (() -> Void)? = nil,
+        onCreateItem: (() -> Void)? = nil
     ) {
         self.canShareShoppingList = canShareShoppingList
         _isStorePullToAddSearchPresented = isStorePullToAddSearchPresented
@@ -324,6 +343,20 @@ struct ShoppingView: View {
         self.onSettings = onSettings
         self.onManageStoreSections = onManageStoreSections
         self.onAddItem = onAddItem
+        self.onShowAllItems = onShowAllItems
+        self.onSavedLists = onSavedLists
+        self.onCreateItem = onCreateItem
+    }
+
+    /// Long-press menu on the + (tap keeps `onAddItem`, which honors **Shortcut to All Items**).
+    private var storeAddItemMenuActions: StoreAddItemMenuActions? {
+        guard let onShowAllItems, let onSavedLists, let onCreateItem else { return nil }
+        return StoreAddItemMenuActions(
+            addItem: onBeginPullToAddSearch,
+            allItems: onShowAllItems,
+            savedLists: onSavedLists,
+            createItem: onCreateItem
+        )
     }
 
     private var showsPullToAddChrome: Bool {
@@ -612,8 +645,11 @@ struct ShoppingView: View {
                         )
                         Spacer(minLength: 0)
                     }
-                    .offset(y: -10)
+                    .padding(.bottom, Self.storeToastBottomPadding)
                 }
+                // No tab bar: the bottom toolbar only has the trailing +, so the centered toast can
+                // sit in that row (just above the home indicator) instead of above the toolbar.
+                .ignoresSafeArea(.container, edges: .bottom)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .allowsHitTesting(false)
                 .zIndex(1)
@@ -672,7 +708,8 @@ struct ShoppingView: View {
                             accessibilityLabel: plusOpensAllItems
                                 ? LocalizedCopy.allItemsButton
                                 : LocalizedCopy.addItem,
-                            action: onAddItem
+                            action: onAddItem,
+                            menuActions: storeAddItemMenuActions
                         )
                             .id(appTheme.id)
                     }
@@ -1323,26 +1360,96 @@ private struct StoreGlassToastConfirmation: View {
     }
 }
 
-/// Store bottom bar: opens pull-to-add so items can be added to the shopping list.
-/// Shopping list bottom-trailing control: theme-filled glass + that opens pull-to-add.
+/// Long-press menu actions for the shopping list +.
+private struct StoreAddItemMenuActions {
+    let addItem: () -> Void
+    let allItems: () -> Void
+    let savedLists: () -> Void
+    let createItem: () -> Void
+}
+
+/// Shopping list bottom-trailing control: theme-colored + icon (toolbar supplies the glass, same
+/// pattern as the All Items shopping-list button). With `menuActions`, tap runs `action` and
+/// long-press shows Add item / All items / Saved lists / Create item.
+/// Not `.glassProminent`: a `Menu` inside a `ToolbarItem` ignores that button style, and a
+/// prominent `Button` + `.contextMenu` was rejected.
 private struct StoreAddItemToolbarButton: View {
+    @Environment(\.appTheme) private var appTheme
+
     /// "Add item", or "All Items" when the + shortcut setting is on.
     var accessibilityLabel: String = LocalizedCopy.addItem
     let action: () -> Void
+    var menuActions: StoreAddItemMenuActions? = nil
+
+    private var plusGlyph: some View {
+        // No explicit font: the toolbar sizes it like the other bar icons.
+        Label(accessibilityLabel, systemImage: "plus")
+            .labelStyle(.iconOnly)
+            .foregroundStyle(appTheme.color)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Menu rows stay label-colored: icons are painted `.alwaysOriginal` so the + button's theme
+    /// `tint` (needed to color the toolbar glyph) doesn't recolor them.
+    private func menuItemLabel(_ title: String, systemImage: String) -> some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(uiImage: StoreAddItemMenuSymbol.image(systemName: systemImage))
+        }
+    }
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: "plus")
-                .font(.system(size: 18, weight: .semibold))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        if let menuActions {
+            Menu {
+                Button(action: menuActions.addItem) {
+                    menuItemLabel(LocalizedCopy.addItem, systemImage: "plus")
+                }
+                Button(action: menuActions.allItems) {
+                    menuItemLabel(LocalizedCopy.homeLibrary, systemImage: "square.grid.2x2")
+                }
+                Button(action: menuActions.savedLists) {
+                    menuItemLabel(LocalizedCopy.savedLists, systemImage: "book.pages")
+                }
+                Button(action: menuActions.createItem) {
+                    menuItemLabel(LocalizedCopy.createItem, systemImage: "plus.app")
+                }
+            } label: {
+                plusGlyph
+            } primaryAction: {
+                action()
+            }
+            .modifier(StoreAddItemToolbarChrome(accessibilityLabel: accessibilityLabel))
+        } else {
+            Button(action: action) {
+                plusGlyph
+            }
+            .modifier(StoreAddItemToolbarChrome(accessibilityLabel: accessibilityLabel))
         }
-        .buttonStyle(.glassProminent)
-        .buttonBorderShape(.circle)
-        .catalogToolbarCircularTapTarget()
-        .clipShape(Circle())
-        .appThemeTint()
-        .appThemeIdentity()
-        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+/// Label-colored menu row icon, immune to the + button's theme `tint`.
+private enum StoreAddItemMenuSymbol {
+    static func image(systemName: String) -> UIImage {
+        let image = UIImage(systemName: systemName) ?? UIImage()
+        return image.withTintColor(.label, renderingMode: .alwaysOriginal)
+    }
+}
+
+/// Plain toolbar icon chrome for the shopping list + (button or menu) — matches the other bar icons.
+private struct StoreAddItemToolbarChrome: ViewModifier {
+    let accessibilityLabel: String
+
+    func body(content: Content) -> some View {
+        content
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+            .catalogToolbarCircularTapTarget()
+            // A toolbar `Menu` label follows `tint` (the stack's `.primary`), not `foregroundStyle`.
+            .appThemeTint()
+            .appThemeIdentity()
+            .accessibilityLabel(accessibilityLabel)
     }
 }
 

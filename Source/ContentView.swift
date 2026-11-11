@@ -39,6 +39,8 @@ struct ContentView: View {
     @State private var newItemAddToShoppingAfterSave = false
     /// True while All Items is pushed on top of the shopping list. Fresh launches open the list.
     @State private var isShowingAllItems = false
+    /// Saved lists sheet opened from the shopping list + long-press menu.
+    @State private var isPresentingShoppingSavedLists = false
     /// Pull-to-add presented as a modal sheet (Settings-style) from the List tab.
     @State private var isPresentingPullToAddSheet = false
     /// Drops the sticky pull-to-add search keyboard (e.g. while the first-item explainer is up).
@@ -62,19 +64,9 @@ struct ContentView: View {
     @State private var firstShoppingItemExplainerTask: Task<Void, Never>?
     @State private var welcomeExplainerTask: Task<Void, Never>?
     @State private var storeGesturesExplainerTask: Task<Void, Never>?
-    @StateObject private var firstAddToListDive = FirstAddToListDiveController()
-    /// Live center of the All Items shopping-list button (window coords), reported by the button.
-    /// Reference box: updates during the push animation must not re-render the root.
-    @State private var shoppingListButtonDiveTarget = DiveTargetPointBox()
     /// Drives the All Items shopping-list badge layer. Held in `@State` (not `@StateObject`) so only
     /// the badge layer observes it — frame/visibility updates don't re-render the root.
     @State private var shoppingListBadgeAnchor = ShoppingListBadgeAnchor()
-    /// Snapshot taken when a dive starts so travel doesn’t drift with layout.
-    @State private var activeDiveTargetPoint: CGPoint = .zero
-    /// Hide the shopping-list button badge until the first-add +1 bubble finishes.
-    @State private var suppressListTabBadgeForFirstAddDive = false
-    /// Blocks Home/List interaction from dive start until the first-item explainer appears.
-    @State private var blocksInteractionUntilFirstItemExplainer = false
 
     /// At least one unchecked line with a resolved catalog item (same as what share text would include).
     private var canShareShoppingList: Bool {
@@ -84,7 +76,6 @@ struct ContentView: View {
     /// All Items shopping-list button badge when the dedicated setting is on (0 hides the badge).
     private var listTabUncheckedBadge: Int {
         guard showListTabBadge else { return 0 }
-        guard !suppressListTabBadgeForFirstAddDive else { return 0 }
         return ShoppingIconBadge.uncheckedCount(store: store)
     }
 
@@ -103,7 +94,10 @@ struct ContentView: View {
                     onSettings: { isPresentingSettings = true },
                     onManageStoreSections: { editGroupsSheetKind = .shopping },
                     // Pull-down always opens pull-to-add (`onBeginPullToAddSearch`); only + honors the shortcut.
-                    onAddItem: handleShoppingListPlusTapped
+                    onAddItem: handleShoppingListPlusTapped,
+                    onShowAllItems: { isShowingAllItems = true },
+                    onSavedLists: { isPresentingShoppingSavedLists = true },
+                    onCreateItem: createItemFromShoppingList
                 )
                 .navigationDestination(isPresented: $isShowingAllItems) {
                     homeCatalogTabScreen
@@ -120,28 +114,6 @@ struct ContentView: View {
                 count: listTabUncheckedBadge
             )
             .zIndex(130)
-
-            if blocksInteractionUntilFirstItemExplainer {
-                Color.clear
-                    .ignoresSafeArea()
-                    .contentShape(Rectangle())
-                    .zIndex(140)
-                    .accessibilityHidden(true)
-            }
-
-            if let dive = firstAddToListDive.payload {
-                FirstAddToListDiveOverlay(
-                    itemName: dive.itemName,
-                    sourceFrame: dive.sourceFrame,
-                    targetPoint: activeDiveTargetPoint,
-                    onPlusOneFinished: {
-                        suppressListTabBadgeForFirstAddDive = false
-                    },
-                    onFinished: completeFirstAddToListDive
-                )
-                .allowsHitTesting(false)
-                .zIndex(150)
-            }
 
             if let kind = fullWindowOverlay.kind {
                 fullWindowOverlayContent(kind: kind)
@@ -211,13 +183,9 @@ struct ContentView: View {
             onBackToStore: nil,
             onShowShoppingList: { isShowingAllItems = false },
             shoppingListBadgeCount: listTabUncheckedBadge,
-            onShoppingListButtonFrameChange: { frame in
-                shoppingListButtonDiveTarget.point = CGPoint(x: frame.midX, y: frame.midY)
-                shoppingListBadgeAnchor.buttonFrame = frame
-            },
+            onShoppingListButtonFrameChange: { shoppingListBadgeAnchor.buttonFrame = $0 },
             onShoppingListButtonMountedChange: { shoppingListBadgeAnchor.isButtonMounted = $0 },
             onReturnToStoreAfterRecipeApply: { isShowingAllItems = false },
-            onFirstHomeAddDive: beginFirstAddToListDiveIfNeeded,
             onEditItem: { item in
                 inventoryCatalogEditorItem = item
             },
@@ -313,6 +281,14 @@ struct ContentView: View {
         isPresentingPullToAddSheet = false
     }
 
+    /// Shopping list + menu **Create item**: new library item, added to the shopping list on save
+    /// (same as Create Item from pull-to-add).
+    private func createItemFromShoppingList() {
+        newItemPrefillName = nil
+        newItemAddToShoppingAfterSave = true
+        isPresentingNewCatalogItem = true
+    }
+
     /// Shopping list +: All Items when **Shortcut to All Items** is on, otherwise pull-to-add.
     private func handleShoppingListPlusTapped() {
         if plusOpensAllItems {
@@ -391,6 +367,14 @@ struct ContentView: View {
         }
         .sheet(isPresented: $isPresentingSettings) {
             settingsSheet
+        }
+        .sheet(isPresented: $isPresentingShoppingSavedLists) {
+            NavigationStack {
+                RecipesListView(
+                    onAppliedToShopping: { isPresentingShoppingSavedLists = false }
+                )
+            }
+            .environmentObject(store)
         }
         .onChange(of: isPresentingSettings) { _, presented in
             if presented {
@@ -575,89 +559,20 @@ struct ContentView: View {
 
     private func scheduleFirstShoppingItemExplainerIfNeeded() {
         guard !hasSeenFirstShoppingItemExplainer else { return }
-        guard !firstAddToListDive.isActive else { return }
         dismissKeyboardForFirstItemExplainer()
         firstShoppingItemExplainerTask?.cancel()
         firstShoppingItemExplainerTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(0.5))
             guard !Task.isCancelled else { return }
             guard !hasSeenFirstShoppingItemExplainer else { return }
-            guard !firstAddToListDive.isActive else { return }
             guard !store.shopping.isEmpty else { return }
             guard fullWindowOverlay.kind == nil else { return }
             fullWindowOverlay.presentFirstShoppingItemExplainer()
         }
     }
 
-    private func beginFirstAddToListDiveIfNeeded(itemName: String, sourceFrame: CGRect) {
-        guard !hasSeenFirstShoppingItemExplainer else { return }
-        guard !firstAddToListDive.isActive else { return }
-        firstShoppingItemExplainerTask?.cancel()
-        // Dive into the All Items shopping-list button (bottom leading).
-        activeDiveTargetPoint = shoppingListButtonDiveTarget.point == .zero
-            ? shoppingListButtonDiveFallbackPoint
-            : shoppingListButtonDiveTarget.point
-        suppressListTabBadgeForFirstAddDive = true
-        blocksInteractionUntilFirstItemExplainer = true
-        firstAddToListDive.begin(itemName: itemName, sourceFrame: sourceFrame)
-        // Invalid source frame: fall through to the normal explainer delay.
-        if !firstAddToListDive.isActive {
-            suppressListTabBadgeForFirstAddDive = false
-            blocksInteractionUntilFirstItemExplainer = false
-            scheduleFirstShoppingItemExplainerIfNeeded()
-        }
-    }
-
-    private func completeFirstAddToListDive() {
-        firstAddToListDive.complete()
-        // After the dive +1, wait briefly before the explainer.
-        guard !hasSeenFirstShoppingItemExplainer else {
-            blocksInteractionUntilFirstItemExplainer = false
-            return
-        }
-        dismissKeyboardForFirstItemExplainer()
-        firstShoppingItemExplainerTask?.cancel()
-        firstShoppingItemExplainerTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1))
-            guard !Task.isCancelled else { return }
-            guard !hasSeenFirstShoppingItemExplainer else {
-                blocksInteractionUntilFirstItemExplainer = false
-                return
-            }
-            guard !store.shopping.isEmpty else {
-                blocksInteractionUntilFirstItemExplainer = false
-                return
-            }
-            guard fullWindowOverlay.kind == nil else {
-                blocksInteractionUntilFirstItemExplainer = false
-                return
-            }
-            fullWindowOverlay.presentFirstShoppingItemExplainer()
-            blocksInteractionUntilFirstItemExplainer = false
-        }
-    }
-
-    /// Fallback when the shopping-list button hasn’t reported its frame yet (bottom-leading toolbar slot).
-    private var shoppingListButtonDiveFallbackPoint: CGPoint {
-        let bounds = keyWindowSceneBounds
-        let inset: CGFloat = 46
-        let x = AppSystemLocale.interfaceLayoutDirection == .rightToLeft
-            ? bounds.maxX - inset
-            : bounds.minX + inset
-        return CGPoint(x: x, y: bounds.height - 48)
-    }
-
-    private var keyWindowSceneBounds: CGRect {
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let scene =
-            scenes.first(where: { $0.activationState == .foregroundActive })
-            ?? scenes.first
-        return scene?.screen.bounds ?? CGRect(x: 0, y: 0, width: 390, height: 844)
-    }
-
     private func completeFirstShoppingItemExplainer() {
         hasSeenFirstShoppingItemExplainer = true
-        blocksInteractionUntilFirstItemExplainer = false
         fullWindowOverlay.dismiss(animated: false)
         restorePullToAddKeyboardAfterFirstItemExplainerIfNeeded()
         scheduleStoreGesturesExplainerIfNeeded()
@@ -717,11 +632,6 @@ struct ContentView: View {
         }
     }
 
-}
-
-/// Mutable holder for the first-add dive target; writes don't invalidate SwiftUI views.
-private final class DiveTargetPointBox {
-    var point: CGPoint = .zero
 }
 
 /// Where and when to draw the All Items shopping-list badge (observed only by the badge layer).

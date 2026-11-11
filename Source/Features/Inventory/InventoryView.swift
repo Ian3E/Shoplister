@@ -87,12 +87,8 @@ struct InventoryView: View {
     var onShoppingListButtonMountedChange: ((Bool) -> Void)? = nil
     /// After adding a recipe to the shopping list, pop back to Store.
     var onReturnToStoreAfterRecipeApply: (() -> Void)? = nil
-    /// First empty→non-empty Home add: item name + global title frame for the List-tab dive.
-    var onFirstHomeAddDive: ((String, CGRect) -> Void)? = nil
 
     @State private var rowAnchors: [HomeCatalogRowAnchor] = []
-    /// Latest global frames for Home row titles (drive first-add dive source).
-    @State private var homeItemNameGlobalFrames: [UUID: CGRect] = [:]
     @State private var listScrollSnapshot = HomeCatalogListScrollSnapshot(
         viewportHeight: 0,
         contentTopInset: 0
@@ -151,7 +147,6 @@ struct InventoryView: View {
         onShoppingListButtonFrameChange: ((CGRect) -> Void)? = nil,
         onShoppingListButtonMountedChange: ((Bool) -> Void)? = nil,
         onReturnToStoreAfterRecipeApply: (() -> Void)? = nil,
-        onFirstHomeAddDive: ((String, CGRect) -> Void)? = nil,
         onEditItem: @escaping (GroceryItem) -> Void = { _ in },
         onDeleteItem: @escaping (GroceryItem) -> Void = { _ in }
     ) {
@@ -179,7 +174,6 @@ struct InventoryView: View {
         self.onShoppingListButtonFrameChange = onShoppingListButtonFrameChange
         self.onShoppingListButtonMountedChange = onShoppingListButtonMountedChange
         self.onReturnToStoreAfterRecipeApply = onReturnToStoreAfterRecipeApply
-        self.onFirstHomeAddDive = onFirstHomeAddDive
         self.onEditItem = onEditItem
         self.onDeleteItem = onDeleteItem
     }
@@ -511,18 +505,8 @@ struct InventoryView: View {
         if store.shopping.contains(where: { $0.itemID == itemID }) {
             store.removeFromShopping(itemID: itemID)
         } else {
-            let wasShoppingEmpty = store.shopping.isEmpty
             store.addToShopping(itemID: itemID, quantity: 1)
             onAddedToShopping?()
-            if wasShoppingEmpty,
-               let onFirstHomeAddDive,
-               let frame = homeItemNameGlobalFrames[itemID],
-               let item = store.item(for: itemID) {
-                onFirstHomeAddDive(
-                    item.displayName(appContentLanguage: catalogLanguage),
-                    frame
-                )
-            }
             QuantityPillChromeTiming.expandAfterAdd(
                 itemID: itemID,
                 guardInShopping: { [store] in
@@ -776,9 +760,6 @@ struct InventoryView: View {
                 .onPreferenceChange(HomeCatalogRowAnchorKey.self) { anchors in
                     rowAnchors = anchors
                     updateHomeCatalogActiveSection(anchors: anchors)
-                }
-                .onPreferenceChange(HomeItemNameGlobalFrameKey.self) { frames in
-                    homeItemNameGlobalFrames = frames
                 }
                 // Attach before the section-title safe-area bar — that bar’s horizontal
                 // `ScrollView` would otherwise make `onScrollGeometryChange` see two scroll views.
@@ -1813,7 +1794,7 @@ private struct HomeCatalogEllipsisMenu: View {
             Section {
                 if let onAddItem {
                     Button(action: onAddItem) {
-                        Label(LocalizedCopy.createItem, systemImage: "plus")
+                        Label(LocalizedCopy.createItem, systemImage: "plus.app")
                     }
                 }
                 Button(action: onSavedLists) {
@@ -2310,9 +2291,6 @@ private struct InventoryCatalogRow: View {
                 .animation(.easeIn(duration: HomeCatalogEditModeTiming.statusFadeDuration), value: showsRowShoppingStatus)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .trailing)
-                .overlay(alignment: .trailing) {
-                    itemNameDiveSourceProbe
-                }
         }
     }
 
@@ -2326,25 +2304,10 @@ private struct InventoryCatalogRow: View {
                 .animation(.easeIn(duration: HomeCatalogEditModeTiming.statusFadeDuration), value: showsRowShoppingStatus)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .overlay(alignment: .leading) {
-                    itemNameDiveSourceProbe
-                }
             if showsShoppingStatus {
                 quantityPillColumn
             }
         }
-    }
-
-    /// Intrinsic name bounds for the first-add dive (does not affect truncation layout).
-    /// Uses bold to match the diving label so midX lines up after the row turns bold.
-    private var itemNameDiveSourceProbe: some View {
-        Text(item.displayName(appContentLanguage: catalogLanguage))
-            .font(.body.weight(.bold))
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
-            .hidden()
-            .reportHomeItemNameGlobalFrame(itemID: item.id)
-            .accessibilityHidden(true)
     }
 
     private var quantityPillColumn: some View {

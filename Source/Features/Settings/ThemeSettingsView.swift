@@ -146,23 +146,23 @@ struct ThemeSettingsView: View {
     }
 }
 
-/// Theme-filled glass "+" for the theme preview — mirrors the shopping list bottom-trailing
-/// `StoreAddItemToolbarButton` (`.glassProminent`, theme tint, white symbol). Sized to the rendered
-/// toolbar control (50pt), not the live button's 36pt tap frame — the toolbar draws it larger.
+/// Clear-glass "+" for the theme preview — mirrors the shopping list bottom-trailing
+/// `StoreAddItemToolbarButton` (toolbar glass circle + theme-colored symbol), 36pt.
 private struct SettingsThemePreviewAddButton: View {
-    private static let renderedToolbarDiameter: CGFloat = 50
+    @Environment(\.appTheme) private var appTheme
+
+    private static let renderedToolbarDiameter: CGFloat = 36
 
     var body: some View {
         Button(action: {}) {
             Image(systemName: "plus")
                 .font(.system(size: 21, weight: .semibold))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .foregroundStyle(appTheme.color)
+                .frame(width: Self.renderedToolbarDiameter, height: Self.renderedToolbarDiameter)
+                .contentShape(Circle())
         }
-        .buttonStyle(.glassProminent)
+        .buttonStyle(.glass)
         .buttonBorderShape(.circle)
-        .frame(width: Self.renderedToolbarDiameter, height: Self.renderedToolbarDiameter)
-        .clipShape(Circle())
-        .appThemeTint()
         .appThemeIdentity()
         .accessibilityLabel(LocalizedCopy.addItem)
         .allowsHitTesting(false)

@@ -87,7 +87,6 @@
 		AA00006C000000000000006C /* SettingsSectionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102000000000000010B /* SettingsSectionViews.swift */; };
 		AA00006D000000000000006D /* SettingsAppFeaturesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102000000000000010C /* SettingsAppFeaturesView.swift */; };
 		AA00006E000000000000006E /* AppFeaturesCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102000000000000010D /* AppFeaturesCatalog.swift */; };
-		AA00006F000000000000006F /* FirstAddToListDiveOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102000000000000010E /* FirstAddToListDiveOverlay.swift */; };
 		AA0000700000000000000070 /* LibraryBackupArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000070 /* LibraryBackupArchive.swift */; };
 		AA0000710000000000000071 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = AA000PKG2000000000000002 /* ZIPFoundation */; };
 		AA0000720000000000000072 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AA000201000000000000000D /* PrivacyInfo.xcprivacy */; };
@@ -201,7 +200,6 @@
 		AA000102000000000000010B /* SettingsSectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSectionViews.swift; sourceTree = "<group>"; };
 		AA000102000000000000010C /* SettingsAppFeaturesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAppFeaturesView.swift; sourceTree = "<group>"; };
 		AA000102000000000000010D /* AppFeaturesCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeaturesCatalog.swift; sourceTree = "<group>"; };
-		AA000102000000000000010E /* FirstAddToListDiveOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstAddToListDiveOverlay.swift; sourceTree = "<group>"; };
 		AA0002010000000000000000 /* Shoplister.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Shoplister.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0002010000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA0002010000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -347,7 +345,6 @@
 				AA0001020000000000000106 /* HomeCatalogListChrome.swift */,
 				AA0001020000000000000108 /* HomeFirstVisitExplainerView.swift */,
 				AA000102000000000000010A /* WelcomeExplainerOverlay.swift */,
-				AA000102000000000000010E /* FirstAddToListDiveOverlay.swift */,
 				AA000101000000000000007B /* StoreGesturesExplainerOverlay.swift */,
 				AA0001010000000000000054 /* QuantityPillMaterialStyle.swift */,
 				AA0001010000000000000074 /* ExpandableQuantityPill.swift */,
@@ -613,7 +610,6 @@
 				AA0000690000000000000069 /* HomeFirstVisitExplainerView.swift in Sources */,
 				AA00006A000000000000006A /* AppWelcomeExplainer.swift in Sources */,
 				AA00006B000000000000006B /* WelcomeExplainerOverlay.swift in Sources */,
-				AA00006F000000000000006F /* FirstAddToListDiveOverlay.swift in Sources */,
 				AA00007A000000000000007A /* AppStoreGesturesExplainer.swift in Sources */,
 				AA00007B000000000000007B /* StoreGesturesExplainerOverlay.swift in Sources */,
 				AA00007C000000000000007C /* AppHomeCatalogVisit.swift in Sources */,
