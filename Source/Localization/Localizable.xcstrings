@@ -4,6 +4,17 @@
     "" : {
 
     },
+    "All Items" : {
+      "comment" : "Pull-to-add sheet button that opens the All Items screen",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כל הפריטים"
+          }
+        }
+      }
+    },
     ", %lld unchecked" : {
       "comment" : "Accessibility suffix for collapsed section with unchecked count",
       "localizations" : {
@@ -26,6 +37,39 @@
         }
       }
     },
+    "%lld unchecked items" : {
+      "comment" : "VoiceOver value: unchecked shopping list item count on the shopping list button",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld פריטים לא מסומנים"
+          }
+        }
+      }
+    },
+    "Pull down or tap plus to add items." : {
+      "comment" : "Accessibility label for empty shopping add hint",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "משכו למטה או הקישו על פלוס להוספת פריטים."
+          }
+        }
+      }
+    },
+    "Shopping list badge" : {
+      "comment" : "Toggle: unchecked-count badge on the All Items shopping list button",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "תג רשימת הקניות"
+          }
+        }
+      }
+    },
     "“[shopping_sections]” must list at least one section." : {
       "comment" : "Backup import error when shopping sections list is empty",
       "localizations" : {
@@ -33,6 +77,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "״[shopping_sections]״ חייב לכלול לפחות קבוצה אחת."
+          }
+        }
+      }
+    },
+    "Shortcut to All Items" : {
+      "comment" : "Toggle: shopping list + button opens All Items",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "קיצור דרך לכל הפריטים"
+          }
+        }
+      }
+    },
+    "Show a badge on the shopping list button in All Items with the count of unchecked shopping list items." : {
+      "comment" : "App feature description: shopping list button badge",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הציגו תג על כפתור רשימת הקניות במסך כל הפריטים עם מספר הפריטים שלא סומנו ברשימת הקניות."
+          }
+        }
+      }
+    },
+    "When on, tapping + on the shopping list opens All Items. Pulling down on the list still opens Add item." : {
+      "comment" : "Footer under Shortcut to All Items toggle",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כשמופעל, הקשה על + ברשימת הקניות פותחת את כל הפריטים. משיכה למטה ברשימה עדיין פותחת את הוספת פריט."
+          }
+        }
+      }
+    },
+    "When on, the shopping list button in All Items shows how many shopping list items are still unchecked." : {
+      "comment" : "Footer under shopping list badge toggle",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כשמופעל, כפתור רשימת הקניות במסך כל הפריטים מציג כמה פריטים ברשימת הקניות עדיין לא מסומנים."
           }
         }
       }
@@ -153,7 +241,15 @@
       }
     },
     "%lld items found" : {
-      "comment" : "Home search match count subheader"
+      "comment" : "Home search match count subheader",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "נמצאו %lld פריטים"
+          }
+        }
+      }
     },
     "%lld items remaining" : {
       "comment" : "Shopping list subtitle for remaining unchecked items",
@@ -193,7 +289,15 @@
       }
     },
     "1 item found" : {
-      "comment" : "Home search match count subheader (singular)"
+      "comment" : "Home search match count subheader (singular)",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "נמצא פריט אחד"
+          }
+        }
+      }
     },
     "1 item remaining" : {
       "comment" : "Shopping list subtitle when one item remains unchecked",
@@ -344,7 +448,15 @@
       }
     },
     "After clearing checked items or the whole list, shake your device to undo. You can also use Undo in the menu." : {
-      "comment" : "App feature description: shake to undo a recent clear"
+      "comment" : "App feature description: shake to undo a recent clear",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לאחר ניקוי הפריטים המסומנים או הרשימה כולה, נערו את המכשיר כדי לבטל. אפשר גם לבטל מהתפריט."
+          }
+        }
+      }
     },
     "All done" : {
       "comment" : "Empty shopping list overlay title",
@@ -870,7 +982,15 @@
       }
     },
     "Delete “%@”?" : {
-      "comment" : "Delete recipe confirmation title; %@ is recipe name"
+      "comment" : "Delete recipe confirmation title; %@ is recipe name",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "למחוק את ״%@״?"
+          }
+        }
+      }
     },
     "Delete %lld items?" : {
       "comment" : "Delete multiple items confirmation title",
@@ -1581,17 +1701,6 @@
         }
       }
     },
-    "List tab badge" : {
-      "comment" : "List tab badge toggle",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "תג לשונית הרשימה"
-          }
-        }
-      }
-    },
     "Lock portrait" : {
       "comment" : "Lock portrait orientation toggle",
       "localizations" : {
@@ -1960,10 +2069,26 @@
       }
     },
     "Pinch in on the list to collapse every store section; pinch out to expand them all." : {
-      "comment" : "App feature description: pinch to collapse store sections"
+      "comment" : "App feature description: pinch to collapse store sections",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "צבטו פנימה ברשימה כדי לכווץ את כל קבוצות הסופר; צבטו החוצה כדי להרחיב את כולן."
+          }
+        }
+      }
     },
     "Pinch to collapse" : {
-      "comment" : "App feature title: pinch to collapse store sections"
+      "comment" : "App feature title: pinch to collapse store sections",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "צביטה לכיווץ"
+          }
+        }
+      }
     },
     "Pink" : {
       "comment" : "Pink theme color name",
@@ -1999,7 +2124,15 @@
       }
     },
     "Pull down at the top to add items. Pull up at the bottom to clear checked items. Pinch to collapse or expand all sections. Shake to undo a recent clear." : {
-      "comment" : "VoiceOver hint for shopping list gesture shortcuts"
+      "comment" : "VoiceOver hint for shopping list gesture shortcuts",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "משכו למטה בראש הרשימה להוספת פריטים. משכו למעלה בתחתית הרשימה לניקוי פריטים מסומנים. צבטו לכיווץ או להרחבה של כל הקבוצות. נערו לביטול ניקוי אחרון."
+          }
+        }
+      }
     },
     "Pull down on the shopping list to search your library and add items without leaving the list." : {
       "comment" : "App feature description: pull down to add items",
@@ -2031,17 +2164,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "משכו למטה או הקישו על"
-          }
-        }
-      }
-    },
-    "Pull down or tap plus to add items. Tap the Items tab to browse all items." : {
-      "comment" : "Accessibility label for empty shopping add hint",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "משכו למטה או הקישו על פלוס להוספת פריטים. הקישו על לשונית פריטים לעיון בכל הפריטים."
           }
         }
       }
@@ -2136,7 +2258,15 @@
       }
     },
     "Remove from shopping list" : {
-      "comment" : "Remove item from shopping list accessibility label"
+      "comment" : "Remove item from shopping list accessibility label",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הסרה מרשימת הקניות"
+          }
+        }
+      }
     },
     "Remove item" : {
       "comment" : "Remove item from shopping list context menu",
@@ -2407,7 +2537,15 @@
       }
     },
     "Shake to undo" : {
-      "comment" : "App feature title: shake to undo a recent clear"
+      "comment" : "App feature title: shake to undo a recent clear",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ניעור לביטול"
+          }
+        }
+      }
     },
     "Share from other apps" : {
       "comment" : "App feature title: share extension",
@@ -2476,10 +2614,26 @@
       }
     },
     "Shopping list gestures" : {
-      "comment" : "Store gestures coach overlay title"
+      "comment" : "Store gestures coach overlay title",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "מחוות ברשימת הקניות"
+          }
+        }
+      }
     },
     "Shopping list gestures. Pull down to add items. Pull up to clear checked items. Long press a row to adjust quantity. Shake to undo a recent clear." : {
-      "comment" : "Store gestures coach overlay VoiceOver label"
+      "comment" : "Store gestures coach overlay VoiceOver label",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "מחוות ברשימת הקניות. משכו למטה להוספת פריטים. משכו למעלה לניקוי פריטים מסומנים. לחצו לחיצה ארוכה על שורה לשינוי הכמות. נערו לביטול ניקוי אחרון."
+          }
+        }
+      }
     },
     "Shopping list, %@" : {
       "comment" : "Accessibility label for shopping list toolbar; %@ is remaining items subtitle",
@@ -2510,17 +2664,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "הציגו תג על סמל האפליקציה עם מספר הפריטים שלא סומנו ברשימת הקניות."
-          }
-        }
-      }
-    },
-    "Show a badge on the List tab with the count of unchecked shopping list items." : {
-      "comment" : "App feature description: List tab badge",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "הציגו תג על לשונית הרשימה עם מספר הפריטים שלא סומנו ברשימת הקניות."
           }
         }
       }
@@ -2620,17 +2763,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "צילום תמונה"
-          }
-        }
-      }
-    },
-    "Tap" : {
-      "comment" : "Empty shopping add hint before Items tab symbol",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "הקישו על"
           }
         }
       }
@@ -2837,10 +2969,26 @@
       }
     },
     "This will restore the checked items you just cleared." : {
-      "comment" : "Shake undo clear checked alert message"
+      "comment" : "Shake undo clear checked alert message",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "פעולה זו תשחזר את הפריטים המסומנים שניקיתם זה עתה."
+          }
+        }
+      }
     },
     "This will restore your shopping list to how it was before you cleared it." : {
-      "comment" : "Shake undo clear list alert message"
+      "comment" : "Shake undo clear list alert message",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "פעולה זו תשחזר את רשימת הקניות למצבה לפני הניקוי."
+          }
+        }
+      }
     },
     "Tips & features" : {
       "comment" : "Tips and feature guide row and screen title on About screen",
@@ -2871,17 +3019,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "כדי לשנות את הכמות."
-          }
-        }
-      }
-    },
-    "to browse all items" : {
-      "comment" : "Empty shopping add hint after Items tab symbol",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "לעיון בכל הפריטים"
           }
         }
       }
@@ -2922,19 +3059,59 @@
       }
     },
     "Undo" : {
-      "comment" : "Undo confirmation button"
+      "comment" : "Undo confirmation button",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "שחזור"
+          }
+        }
+      }
     },
     "Undo clear checked" : {
-      "comment" : "Undo clear checked items menu item"
+      "comment" : "Undo clear checked items menu item",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ביטול ניקוי מסומנים"
+          }
+        }
+      }
     },
     "Undo clear checked?" : {
-      "comment" : "Shake undo clear checked alert title"
+      "comment" : "Shake undo clear checked alert title",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לבטל את ניקוי המסומנים?"
+          }
+        }
+      }
     },
     "Undo clear list" : {
-      "comment" : "Undo clear shopping list menu item"
+      "comment" : "Undo clear shopping list menu item",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ביטול ניקוי רשימה"
+          }
+        }
+      }
     },
     "Undo clear list?" : {
-      "comment" : "Shake undo clear list alert title"
+      "comment" : "Shake undo clear list alert title",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לבטל את ניקוי הרשימה?"
+          }
+        }
+      }
     },
     "Unsupported backup format version %lld." : {
       "comment" : "Backup import error for unsupported format version",
@@ -2998,17 +3175,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "כשמופעל, סמל האפליקציה מציג כמה פריטים ברשימת הקניות עדיין לא מסומנים. ייתכן שתתבקשו לאשר התראות כדי שהתג יופיע."
-          }
-        }
-      }
-    },
-    "When on, the List tab shows how many shopping list items are still unchecked." : {
-      "comment" : "Footer under List tab badge toggle",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "כשמופעל, לשונית הרשימה מציגה כמה פריטים ברשימת הקניות עדיין לא מסומנים."
           }
         }
       }

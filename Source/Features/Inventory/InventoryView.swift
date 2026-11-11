@@ -77,6 +77,14 @@ struct InventoryView: View {
     var onToolbarSelectGroupsKind: ((Tag.Kind) -> Void)? = nil
     /// Pushed Home catalog: chevron back to Store (no ⋯ menu).
     var onBackToStore: (() -> Void)? = nil
+    /// All Items (pushed on the shopping list): bottom-leading shopping-list button pops back.
+    var onShowShoppingList: (() -> Void)? = nil
+    /// Unchecked count shown on the bottom-leading shopping-list button (0 hides the badge).
+    var shoppingListBadgeCount: Int = 0
+    /// Reports the shopping-list button frame in window coordinates (badge layer + first-add dive).
+    var onShoppingListButtonFrameChange: ((CGRect) -> Void)? = nil
+    /// Reports whether the shopping-list button is in the toolbar (hidden in edit mode).
+    var onShoppingListButtonMountedChange: ((Bool) -> Void)? = nil
     /// After adding a recipe to the shopping list, pop back to Store.
     var onReturnToStoreAfterRecipeApply: (() -> Void)? = nil
     /// First empty→non-empty Home add: item name + global title frame for the List-tab dive.
@@ -138,6 +146,10 @@ struct InventoryView: View {
         onToolbarAddItem: (() -> Void)? = nil,
         onToolbarSelectGroupsKind: ((Tag.Kind) -> Void)? = nil,
         onBackToStore: (() -> Void)? = nil,
+        onShowShoppingList: (() -> Void)? = nil,
+        shoppingListBadgeCount: Int = 0,
+        onShoppingListButtonFrameChange: ((CGRect) -> Void)? = nil,
+        onShoppingListButtonMountedChange: ((Bool) -> Void)? = nil,
         onReturnToStoreAfterRecipeApply: (() -> Void)? = nil,
         onFirstHomeAddDive: ((String, CGRect) -> Void)? = nil,
         onEditItem: @escaping (GroceryItem) -> Void = { _ in },
@@ -162,6 +174,10 @@ struct InventoryView: View {
         self.onToolbarAddItem = onToolbarAddItem
         self.onToolbarSelectGroupsKind = onToolbarSelectGroupsKind
         self.onBackToStore = onBackToStore
+        self.onShowShoppingList = onShowShoppingList
+        self.shoppingListBadgeCount = shoppingListBadgeCount
+        self.onShoppingListButtonFrameChange = onShoppingListButtonFrameChange
+        self.onShoppingListButtonMountedChange = onShoppingListButtonMountedChange
         self.onReturnToStoreAfterRecipeApply = onReturnToStoreAfterRecipeApply
         self.onFirstHomeAddDive = onFirstHomeAddDive
         self.onEditItem = onEditItem
@@ -978,9 +994,9 @@ struct InventoryView: View {
                 homeToolbarSearchPlaceholderPinTask = nil
                 homeToolbarSearchFieldFocusTask?.cancel()
                 homeToolbarSearchFieldFocusTask = nil
-                // Tabs: leave searchable + list mounted; tearing them down remounts the List
-                // and resets scroll when returning from Store.
-                guard usesHomeToolbarSearch, !minimizesToolbarSearch else { return }
+                // Pushed All Items is torn down on pop: drop cached toolbar search state so the
+                // next push mounts fresh search chrome (same cleanup as the legacy push model).
+                guard usesHomeToolbarSearch, !minimizesToolbarSearch || onShowShoppingList != nil else { return }
                 attachLiquidGlassToolbarSearch = false
                 HomeToolbarSearchCacheCleaner.clearCachedToolbarSearchField()
                 Task { @MainActor in
@@ -1078,6 +1094,8 @@ struct InventoryView: View {
                     .frame(maxWidth: .infinity)
                     .contentShape(Rectangle())
                     .onTapGesture {
+                        // Minimized search idles as a small button: only absorb stray taps then.
+                        guard isHomeToolbarSearchPresented || !minimizesToolbarSearch else { return }
                         HomeToolbarSearchCacheCleaner.focusToolbarSearchField()
                     }
                     .accessibilityHidden(true)
@@ -1266,6 +1284,16 @@ struct InventoryView: View {
             if showsHomeEditToolbarChrome, let onToolbarAddItem {
                 ToolbarItem(id: "homeCatalogAdd", placement: .bottomBar) {
                     ToolbarCatalogAddButton(action: onToolbarAddItem)
+                }
+            } else if !showsHomeEditToolbarChrome, let onShowShoppingList {
+                // Browse mode: leading shopping-list button (pops back to the list).
+                ToolbarItem(id: "homeCatalogShoppingList", placement: .bottomBar) {
+                    HomeShoppingListToolbarButton(
+                        badgeCount: shoppingListBadgeCount,
+                        action: onShowShoppingList,
+                        onFrameChange: onShoppingListButtonFrameChange,
+                        onMountedChange: onShoppingListButtonMountedChange
+                    )
                 }
             }
             if showsToolbarSearchButton || isHomeToolbarSearchPresented {
@@ -1709,6 +1737,44 @@ private struct HomeCatalogDoneToolbarButton: View {
             .appThemeTint()
             .appThemeIdentity()
             .accessibilityLabel(LocalizedCopy.doneEditing)
+    }
+}
+
+/// All Items bottom-leading control: icon-only toolbar button (same pattern as Saved Lists / Add —
+/// the toolbar supplies the glass) with a theme-colored shopping-list glyph.
+/// The unchecked-count badge is **not** drawn here: toolbar glass blends item content (badge looked
+/// translucent) and clips it during the bar's appear morph. `ContentView` draws it in a layer above
+/// the navigation stack, positioned from the frame this button reports.
+private struct HomeShoppingListToolbarButton: View {
+    @Environment(\.appTheme) private var appTheme
+
+    /// Unchecked count (VoiceOver value only; the visible badge lives in `ContentView`).
+    let badgeCount: Int
+    let action: () -> Void
+    var onFrameChange: ((CGRect) -> Void)? = nil
+    var onMountedChange: ((Bool) -> Void)? = nil
+
+    var body: some View {
+        Button(action: action) {
+            // No explicit font: let the toolbar size the glyph like the system search item.
+            Label(LocalizedCopy.backToShoppingList, systemImage: "checklist")
+                .labelStyle(.iconOnly)
+                .foregroundStyle(appTheme.color)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .buttonStyle(.borderless)
+        .controlSize(.small)
+        .catalogToolbarCircularTapTarget()
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .global)
+        } action: { frame in
+            onFrameChange?(frame)
+        }
+        .onAppear { onMountedChange?(true) }
+        .onDisappear { onMountedChange?(false) }
+        .appThemeIdentity()
+        .accessibilityLabel(LocalizedCopy.backToShoppingList)
+        .accessibilityValue(badgeCount > 0 ? LocalizedCopy.uncheckedItemsCount(badgeCount) : "")
     }
 }
 

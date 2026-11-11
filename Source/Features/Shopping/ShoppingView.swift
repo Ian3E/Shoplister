@@ -54,6 +54,7 @@ struct ShoppingView: View {
     @AppStorage(AppShoppingCollapseCompletedSections.storageKey) private var collapseCompletedSections: Bool = false
     @AppStorage(AppShoppingHideStoreGroupNames.storageKey) private var hideStoreGroupNames: Bool = false
     @AppStorage(AppShoppingConfirmClearWhenAllChecked.storageKey) private var confirmClearWhenAllChecked: Bool = true
+    @AppStorage(AppShoppingPlusOpensAllItems.storageKey) private var plusOpensAllItems: Bool = false
     @AppStorage(AppShoppingEmptyAddHint.storageKey) private var emptyAddHintCompletedListCount: Int = 0
     @AppStorage(AppTextSize.storageKey) private var textSizeRaw: String = AppTextSize.defaultSize.rawValue
 
@@ -667,7 +668,12 @@ struct ShoppingView: View {
                 if showsAddItemButton, let onAddItem {
                     ToolbarSpacer(.flexible, placement: .bottomBar)
                     ToolbarItem(placement: .bottomBar) {
-                        StoreAddItemToolbarButton(action: onAddItem)
+                        StoreAddItemToolbarButton(
+                            accessibilityLabel: plusOpensAllItems
+                                ? LocalizedCopy.allItemsButton
+                                : LocalizedCopy.addItem,
+                            action: onAddItem
+                        )
                             .id(appTheme.id)
                     }
                 }
@@ -1318,7 +1324,10 @@ private struct StoreGlassToastConfirmation: View {
 }
 
 /// Store bottom bar: opens pull-to-add so items can be added to the shopping list.
+/// Shopping list bottom-trailing control: theme-filled glass + that opens pull-to-add.
 private struct StoreAddItemToolbarButton: View {
+    /// "Add item", or "All Items" when the + shortcut setting is on.
+    var accessibilityLabel: String = LocalizedCopy.addItem
     let action: () -> Void
 
     var body: some View {
@@ -1333,7 +1342,7 @@ private struct StoreAddItemToolbarButton: View {
         .clipShape(Circle())
         .appThemeTint()
         .appThemeIdentity()
-        .accessibilityLabel(LocalizedCopy.addItem)
+        .accessibilityLabel(accessibilityLabel)
     }
 }
 

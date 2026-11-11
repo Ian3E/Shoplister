@@ -15,6 +15,12 @@ enum AppShoppingHideStoreGroupNames {
     static let storageKey = "app.shoppingHideStoreGroupNames"
 }
 
+enum AppShoppingPlusOpensAllItems {
+    /// When **on**, the shopping list’s + button opens All Items instead of the pull-to-add sheet.
+    /// Pulling down on the list always opens pull-to-add. Default **off**.
+    static let storageKey = "app.shoppingPlusOpensAllItems"
+}
+
 enum AppShoppingConfirmClearWhenAllChecked {
     /// When **on**, checking the last item asks to keep or clear the list; when **off**, the list clears automatically.
     static let storageKey = "app.shoppingConfirmClearWhenAllChecked"

@@ -15,6 +15,7 @@ struct StorePullToAddCatalogSearchView: View {
     @Environment(\.shoppingListSpacingScale) private var listSpacingScale
     @Environment(\.dismissSearch) private var dismissSearch
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.appTheme) private var appTheme
     @AppStorage(AppTextSize.storageKey) private var textSizeRaw: String = AppTextSize.defaultSize.rawValue
 
     @Binding var isSearchPresented: Bool
@@ -26,6 +27,8 @@ struct StorePullToAddCatalogSearchView: View {
     var onPresentNewItem: (String) -> Void
     /// Pops pull-to-add back to Store (Cancel + return/search submit).
     var onEndSearch: () -> Void
+    /// Top-trailing **All Items**: closes the sheet and opens All Items (nil hides the button).
+    var onShowAllItems: (() -> Void)? = nil
     /// Sheet presentation: focused glass `TextField` so the keyboard rises with the sheet.
     /// Uses a sticky UIKit field that refuses to resign on row taps (unlike SwiftUI `TextField`).
     var usesFocusedSearchField: Bool = false
@@ -168,11 +171,23 @@ struct StorePullToAddCatalogSearchView: View {
                 .accessibilityAddTraits(.isHeader)
             }
             if usesFocusedSearchField {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button(LocalizedCopy.done) {
                         dismissStorePullToAddSearch()
                     }
                     .font(.body.weight(.semibold))
+                }
+            }
+            if usesFocusedSearchField, let onShowAllItems {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(LocalizedCopy.allItemsButton) {
+                        // Same teardown as Done (drops the sticky keyboard first), then navigate.
+                        allowsSearchFieldResign = true
+                        stickySearchFieldFocused = false
+                        onShowAllItems()
+                    }
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(appTheme.color)
                 }
             }
         }

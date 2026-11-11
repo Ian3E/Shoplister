@@ -325,8 +325,8 @@ enum LocalizedCopy {
 
     static var appFeatureListTabBadgeDescription: String {
         String(
-            localized: "Show a badge on the List tab with the count of unchecked shopping list items.",
-            comment: "App feature description: List tab badge"
+            localized: "Show a badge on the shopping list button in All Items with the count of unchecked shopping list items.",
+            comment: "App feature description: shopping list button badge"
         )
     }
 
@@ -461,13 +461,24 @@ enum LocalizedCopy {
     }
 
     static var listTabBadge: String {
-        String(localized: "List tab badge", comment: "List tab badge toggle")
+        String(localized: "Shopping list badge", comment: "Toggle: unchecked-count badge on the All Items shopping list button")
+    }
+
+    static var shortcutToAllItems: String {
+        String(localized: "Shortcut to All Items", comment: "Toggle: shopping list + button opens All Items")
+    }
+
+    static var shortcutToAllItemsFooter: String {
+        String(
+            localized: "When on, tapping + on the shopping list opens All Items. Pulling down on the list still opens Add item.",
+            comment: "Footer under Shortcut to All Items toggle"
+        )
     }
 
     static var listTabBadgeFooter: String {
         String(
-            localized: "When on, the List tab shows how many shopping list items are still unchecked.",
-            comment: "Footer under List tab badge toggle"
+            localized: "When on, the shopping list button in All Items shows how many shopping list items are still unchecked.",
+            comment: "Footer under shopping list badge toggle"
         )
     }
 
@@ -586,20 +597,6 @@ enum LocalizedCopy {
         String(localized: "Your shopping list is empty", comment: "Empty shopping list overlay title")
     }
 
-    static var shoppingListEmptyAddHintTapPrefix: String {
-        String(
-            localized: "Tap",
-            comment: "Empty shopping add hint before Items tab symbol"
-        )
-    }
-
-    static var shoppingListEmptyAddHintBrowseSuffix: String {
-        String(
-            localized: "to browse all items",
-            comment: "Empty shopping add hint after Items tab symbol"
-        )
-    }
-
     static var shoppingListEmptyAddHintPullDownPrefix: String {
         String(
             localized: "Pull down or tap",
@@ -616,7 +613,7 @@ enum LocalizedCopy {
 
     static var shoppingListEmptyAddHintAccessibility: String {
         String(
-            localized: "Pull down or tap plus to add items. Tap the Items tab to browse all items.",
+            localized: "Pull down or tap plus to add items.",
             comment: "Accessibility label for empty shopping add hint"
         )
     }
@@ -738,12 +735,12 @@ enum LocalizedCopy {
 
     // MARK: - Home (library)
 
-    /// EXPERIMENT (tabs): short tab-bar label for the shopping list tab.
+    /// Short label for the shopping list (Settings section title).
     static var tabList: String {
         String(localized: "List", comment: "Root tab bar label for the shopping list")
     }
 
-    /// Short tab-bar label for the catalog tab.
+    /// Short label for the catalog (Settings section title).
     static var tabLibrary: String {
         String(localized: "Items", comment: "Root tab bar label for the catalog / all items tab")
     }
@@ -1163,6 +1160,19 @@ enum LocalizedCopy {
     static func addedItems(_ count: Int) -> String {
         String(
             format: String(localized: "Added %lld items", comment: "Shortcuts intent success dialog"),
+            count
+        )
+    }
+
+    /// Pull-to-add sheet top-leading button that opens All Items.
+    static var allItemsButton: String {
+        String(localized: "All Items", comment: "Pull-to-add sheet button that opens the All Items screen")
+    }
+
+    /// VoiceOver value for the All Items shopping list button badge.
+    static func uncheckedItemsCount(_ count: Int) -> String {
+        String(
+            format: String(localized: "%lld unchecked items", comment: "VoiceOver value: unchecked shopping list item count on the shopping list button"),
             count
         )
     }

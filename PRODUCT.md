@@ -38,7 +38,7 @@ Calm, capable, and familiar—**native iOS first**, not flashy. Voice is direct 
 
 ## Design Principles
 
-1. **Platform-native structure** — Tab-level Home vs Store, system lists, toolbars, sheets, and alerts; depart from HIG only when the shopping workflow clearly benefits.
+1. **Platform-native structure** — Store list as the root with Home (All Items) pushed on top (no tab bar), system lists, toolbars, sheets, and alerts; depart from HIG only when the shopping workflow clearly benefits.
 2. **Task-first Store** — Checking items, quantities, and section grouping stay visually and motorically primary; settings and power features stay reachable but secondary.
 3. **Readable at arm's length** — Dynamic Type, contrast-safe labels, and list density that scales with user text size preferences.
 4. **Bilingual by default** — Layout mirroring and copy work equally in English and Hebrew; RTL is not an afterthought.

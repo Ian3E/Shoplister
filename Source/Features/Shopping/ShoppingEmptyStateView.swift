@@ -86,7 +86,6 @@ struct ShoppingEmptyStateView: View {
     private var addHintFooter: some View {
         VStack(spacing: 16) {
             pullDownAddHintLine
-            browseItemsHintLine
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)
@@ -98,19 +97,6 @@ struct ShoppingEmptyStateView: View {
             Text(LocalizedCopy.shoppingListEmptyAddHintPullDownPrefix)
             plusGlassHintChip
             Text(LocalizedCopy.shoppingListEmptyAddHintPullDownSuffix)
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .allowsHitTesting(false)
-    }
-
-    private var browseItemsHintLine: some View {
-        HStack(spacing: 6) {
-            Text(LocalizedCopy.shoppingListEmptyAddHintTapPrefix)
-            Image(systemName: "square.grid.2x2.fill")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.primary)
-                .accessibilityHidden(true)
-            Text(LocalizedCopy.shoppingListEmptyAddHintBrowseSuffix)
         }
         .fixedSize(horizontal: false, vertical: true)
         .allowsHitTesting(false)

@@ -120,9 +120,9 @@ struct ThemeSettingsView: View {
     /// Matches prior preview section header spacing.
     private static let previewHeaderHeight: CGFloat = 40
     /// Trailing inset for the preview bottom-bar + button.
-    private static let themePreviewTrailingToolbarInset: CGFloat = 20
+    private static let themePreviewTrailingToolbarInset: CGFloat = 26
     /// Bottom inset within the preview pane — mirrors Store `bottomBar` placement.
-    private static let themePreviewBottomToolbarInset: CGFloat = 10
+    private static let themePreviewBottomToolbarInset: CGFloat = 16
     /// Nudge the preview + down to align with the live Store bottom toolbar.
     private static let themePreviewBottomToolbarOffset: CGFloat = 20
 
@@ -146,24 +146,24 @@ struct ThemeSettingsView: View {
     }
 }
 
-/// Clear-glass "+" for the theme preview — mirrors the Store side-tab add control
-/// (separated Liquid Glass circle + theme-colored symbol).
+/// Theme-filled glass "+" for the theme preview — mirrors the shopping list bottom-trailing
+/// `StoreAddItemToolbarButton` (`.glassProminent`, theme tint, white symbol). Sized to the rendered
+/// toolbar control (50pt), not the live button's 36pt tap frame — the toolbar draws it larger.
 private struct SettingsThemePreviewAddButton: View {
-    @Environment(\.appTheme) private var appTheme
-
-    private static let buttonDiameter = CatalogToolbarTapChrome.iconTapDiameter + 10
-    private static let symbolPointSize: CGFloat = 21
+    private static let renderedToolbarDiameter: CGFloat = 50
 
     var body: some View {
         Button(action: {}) {
             Image(systemName: "plus")
-                .font(.system(size: Self.symbolPointSize, weight: .semibold))
-                .foregroundStyle(appTheme.color)
-                .frame(width: Self.buttonDiameter, height: Self.buttonDiameter)
-                .contentShape(Circle())
+                .font(.system(size: 21, weight: .semibold))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.glassProminent)
         .buttonBorderShape(.circle)
+        .frame(width: Self.renderedToolbarDiameter, height: Self.renderedToolbarDiameter)
+        .clipShape(Circle())
+        .appThemeTint()
+        .appThemeIdentity()
         .accessibilityLabel(LocalizedCopy.addItem)
         .allowsHitTesting(false)
     }

@@ -196,7 +196,7 @@ Flat-by-default lists. Depth is communicated through **separators**, **label ste
 
 ### Navigation
 
-- **Pattern:** Tab-level Home vs Store inside `NavigationStack`; sheets for settings, new item, recipes; full-window overlays for explainers and photo preview.
+- **Pattern:** Single `NavigationStack` (no tab bar): Store shopping list is the root (bottom-trailing theme + opens pull-to-add); All Items is pushed from the pull-to-add sheet’s **All Items** button and returns via its bottom-leading list button or swipe-back; sheets for settings, new item, recipes; full-window overlays for explainers and photo preview.
 
 ## 6. Do's and Don'ts
 

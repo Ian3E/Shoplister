@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// One-shot controller for the Home → List tab “dive” celebration before the first-item explainer.
+/// One-shot controller for the All Items → shopping-list button “dive” celebration before the first-item explainer.
 @MainActor
 final class FirstAddToListDiveController: ObservableObject {
     struct Payload: Equatable {
@@ -47,166 +47,7 @@ extension View {
     }
 }
 
-/// Continuously resolves the List tab icon center in window coordinates.
-struct ListTabDiveTargetReader: UIViewRepresentable {
-    @Binding var point: CGPoint
-
-    func makeUIView(context: Context) -> ProbeView {
-        let view = ProbeView()
-        view.isUserInteractionEnabled = false
-        view.onPointChange = { point = $0 }
-        return view
-    }
-
-    func updateUIView(_ uiView: ProbeView, context: Context) {
-        uiView.onPointChange = { point = $0 }
-        uiView.publishIfPossible()
-    }
-
-    final class ProbeView: UIView {
-        var onPointChange: ((CGPoint) -> Void)?
-        private var lastPoint: CGPoint = .zero
-
-        override func didMoveToWindow() {
-            super.didMoveToWindow()
-            publishIfPossible()
-        }
-
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            publishIfPossible()
-        }
-
-        func publishIfPossible() {
-            guard let next = ListTabIconFrameLocator.listTabIconCenterInWindow() else { return }
-            // Ignore sub-point jitter from repeated layout passes.
-            guard hypot(next.x - lastPoint.x, next.y - lastPoint.y) > 0.5 else { return }
-            lastPoint = next
-            onPointChange?(next)
-        }
-    }
-}
-
-/// Resolves the List tab symbol center in window coordinates.
-enum ListTabIconFrameLocator {
-    static func listTabIconCenterInWindow() -> CGPoint? {
-        for scene in UIApplication.shared.connectedScenes {
-            guard let windowScene = scene as? UIWindowScene else { continue }
-            for window in windowScene.windows where !window.isHidden && window.alpha > 0.01 {
-                if let center = listTabIconCenter(in: window) {
-                    return center
-                }
-            }
-        }
-        return nil
-    }
-
-    private static func listTabIconCenter(in root: UIView) -> CGPoint? {
-        guard let tabBar = findTabBar(in: root) else { return nil }
-        let buttons = tabBarButtons(in: tabBar)
-        guard !buttons.isEmpty else { return nil }
-
-        let listTitle = LocalizedCopy.tabList
-        let itemsTitle = LocalizedCopy.tabLibrary
-        let sideTitles = [LocalizedCopy.addItem, LocalizedCopy.search]
-
-        if let listButton = buttons.first(where: {
-            buttonMatchesTitle($0, title: listTitle) && !buttonMatchesTitle($0, title: itemsTitle)
-        }) {
-            return center(of: listButton)
-        }
-
-        if let listButton = buttons.first(where: { buttonContainsSystemImageHint($0, hint: "checklist") }) {
-            return center(of: listButton)
-        }
-
-        // Capsule primary tabs only — never the separated side control or Items tab.
-        let primary = buttons.filter { button in
-            !sideTitles.contains(where: { buttonMatchesTitle(button, title: $0) })
-                && !buttonMatchesTitle(button, title: itemsTitle)
-                && !buttonContainsSystemImageHint(button, hint: "square.grid")
-                && !buttonContainsSystemImageHint(button, hint: "magnifyingglass")
-                && !buttonContainsSystemImageHint(button, hint: "plus")
-        }
-        let candidates = primary.isEmpty ? buttons : primary
-        let isRTL = tabBar.effectiveUserInterfaceLayoutDirection == .rightToLeft
-        // List is the first root tab: leading edge of the capsule in LTR, trailing in RTL.
-        let sorted = candidates.sorted {
-            isRTL ? $0.frame.maxX > $1.frame.maxX : $0.frame.minX < $1.frame.minX
-        }
-        guard let button = sorted.first else { return nil }
-        return center(of: button)
-    }
-
-    private static func center(of button: UIView) -> CGPoint {
-        if let image = preferredImageView(in: button) {
-            return image.convert(CGPoint(x: image.bounds.midX, y: image.bounds.midY), to: nil)
-        }
-        return button.convert(CGPoint(x: button.bounds.midX, y: button.bounds.midY), to: nil)
-    }
-
-    private static func buttonMatchesTitle(_ button: UIView, title: String) -> Bool {
-        guard !title.isEmpty else { return false }
-        if let label = button.accessibilityLabel, label.localizedCaseInsensitiveContains(title) {
-            return true
-        }
-        for label in descendantLabels(in: button) {
-            if label.text?.localizedCaseInsensitiveContains(title) == true {
-                return true
-            }
-        }
-        return false
-    }
-
-    private static func buttonContainsSystemImageHint(_ button: UIView, hint: String) -> Bool {
-        for imageView in descendants(of: button).compactMap({ $0 as? UIImageView }) {
-            let description = String(describing: imageView.image)
-            if description.localizedCaseInsensitiveContains(hint) {
-                return true
-            }
-        }
-        return false
-    }
-
-    private static func tabBarButtons(in tabBar: UITabBar) -> [UIView] {
-        descendants(of: tabBar).filter { view in
-            let name = String(describing: type(of: view))
-            return name.contains("TabBarButton") || name.contains("UITabBarButton")
-        }
-    }
-
-    private static func preferredImageView(in root: UIView) -> UIImageView? {
-        let images = descendants(of: root).compactMap { $0 as? UIImageView }
-        return images
-            .filter { $0.bounds.width >= 8 && $0.bounds.height >= 8 && !$0.isHidden && $0.alpha > 0.01 }
-            .sorted { ($0.bounds.width * $0.bounds.height) > ($1.bounds.width * $1.bounds.height) }
-            .first
-    }
-
-    private static func descendantLabels(in root: UIView) -> [UILabel] {
-        descendants(of: root).compactMap { $0 as? UILabel }
-    }
-
-    private static func findTabBar(in view: UIView) -> UITabBar? {
-        if let tabBar = view as? UITabBar { return tabBar }
-        for subview in view.subviews {
-            if let tabBar = findTabBar(in: subview) { return tabBar }
-        }
-        return nil
-    }
-
-    private static func descendants(of root: UIView) -> [UIView] {
-        var result: [UIView] = []
-        var stack = root.subviews
-        while let view = stack.popLast() {
-            result.append(view)
-            stack.append(contentsOf: view.subviews)
-        }
-        return result
-    }
-}
-
-/// Item name dives into the List tab icon, then a short +1 bubble rises and fades.
+/// Item name dives into the All Items shopping-list button, then a short +1 bubble rises and fades.
 struct FirstAddToListDiveOverlay: View {
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @Environment(\.appTheme) private var appTheme
@@ -214,7 +55,7 @@ struct FirstAddToListDiveOverlay: View {
     let itemName: String
     let sourceFrame: CGRect
     let targetPoint: CGPoint
-    /// Fired when the +1 bubble finishes (reveal List tab badge).
+    /// Fired when the +1 bubble finishes (reveal the shopping-list button badge).
     var onPlusOneFinished: () -> Void = {}
     let onFinished: () -> Void
 

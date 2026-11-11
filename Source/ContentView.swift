@@ -2,25 +2,8 @@ import Combine
 import SwiftUI
 import UIKit
 
-/// Root TabView with centered List + Library tabs.
-/// Pull-to-add is a Settings-style sheet from the List tab (gesture or trailing "+").
-private enum TabSelection: Hashable {
-    case store
-    case home
-    /// Intercept-only: tap opens pull-to-add, then bounces back to `.store`.
-    case storeAdd
-    /// Intercept-only: tap activates Home searchable, then bounces back to `.home`.
-    case homeSearch
-
-    /// Whether the Store side-add control should be visible for this selection.
-    var showsStoreSideAddControl: Bool {
-        switch self {
-        case .store, .storeAdd: return true
-        case .home, .homeSearch: return false
-        }
-    }
-}
-
+/// Root navigation: the shopping list is the stack root; All Items is pushed on top.
+/// Pull-to-add is a Settings-style sheet from the shopping list (gesture or trailing "+").
 struct ContentView: View {
     @EnvironmentObject private var store: GroceryStore
     @EnvironmentObject private var fullWindowOverlay: FullWindowOverlayCoordinator
@@ -31,14 +14,10 @@ struct ContentView: View {
     @State private var newItemPrefillName: String? = nil
     /// Inventory row reorder mode: enables drag handles and changes row taps to "edit item".
     @State private var isInventoryReorderMode: Bool = false
-    /// Home quantity pill expansion — owned here so leaving Library can collapse it immediately
-    /// (TabView may defer InventoryView updates until the tab is visible again).
+    /// Home quantity pill expansion — owned here so leaving All Items can collapse it immediately.
     @State private var expandedHomeQuantityPillItemID: UUID?
-    /// Bumped when returning to Library after an expanded pill so rows remount collapsed
-    /// (TabView defers Home updates while off-screen; remount must happen on become-active).
+    /// Identity token for Home quantity pills (All Items is rebuilt on each push, so this stays stable).
     @State private var homeQuantityPillChromeID = UUID()
-    /// Set when leaving Library with an expanded pill; consumed on the next Library activation.
-    @State private var homeQuantityPillNeedsChromeReset = false
     /// Catalog edit/delete from the full-window quick-actions overlay — presented here (root) so sheets
     /// aren’t attached under Home’s nested `InventoryView`, which can swallow presentation.
     @State private var inventoryCatalogEditorItem: GroceryItem?
@@ -58,11 +37,8 @@ struct ContentView: View {
     @State private var storePullToAddSearchChromeID = UUID()
     /// True only when presenting **New Item** after Store pull-to-add; add saved item to shopping list.
     @State private var newItemAddToShoppingAfterSave = false
-    /// Selected root tab (List / Library). Fresh launches open List.
-    @State private var selectedTab: TabSelection = .store
-    /// Required so `role: .search` gets Liquid Glass *button* (pinned) placement.
-    /// Text is unused — side taps bounce into Store add / Home search instead.
-    @State private var tabBarSearchText = ""
+    /// True while All Items is pushed on top of the shopping list. Fresh launches open the list.
+    @State private var isShowingAllItems = false
     /// Pull-to-add presented as a modal sheet (Settings-style) from the List tab.
     @State private var isPresentingPullToAddSheet = false
     /// Drops the sticky pull-to-add search keyboard (e.g. while the first-item explainer is up).
@@ -76,6 +52,7 @@ struct ContentView: View {
     @AppStorage(AppHomeCatalogVisit.storageKey) private var hasVisitedHomeCatalog = false
     @AppStorage(AppShoppingSortChecked.storageKey) private var sortCheckedShoppingItems: Bool = false
     @AppStorage(AppListTabBadge.storageKey) private var showListTabBadge: Bool = true
+    @AppStorage(AppShoppingPlusOpensAllItems.storageKey) private var plusOpensAllItems: Bool = false
     @AppStorage(AppShoppingBadgeUnchecked.storageKey) private var showUncheckedCountAppBadge: Bool = false
     /// Text size draft while Settings is open; committed in the sheet `onDismiss` handler only.
     @State private var settingsTextSizeDraft: String = AppTextSize.defaultSize.rawValue
@@ -86,11 +63,15 @@ struct ContentView: View {
     @State private var welcomeExplainerTask: Task<Void, Never>?
     @State private var storeGesturesExplainerTask: Task<Void, Never>?
     @StateObject private var firstAddToListDive = FirstAddToListDiveController()
-    /// Live List-tab icon center (window coords); refreshed by `ListTabDiveTargetReader`.
-    @State private var listTabDiveTargetPoint: CGPoint = .zero
+    /// Live center of the All Items shopping-list button (window coords), reported by the button.
+    /// Reference box: updates during the push animation must not re-render the root.
+    @State private var shoppingListButtonDiveTarget = DiveTargetPointBox()
+    /// Drives the All Items shopping-list badge layer. Held in `@State` (not `@StateObject`) so only
+    /// the badge layer observes it — frame/visibility updates don't re-render the root.
+    @State private var shoppingListBadgeAnchor = ShoppingListBadgeAnchor()
     /// Snapshot taken when a dive starts so travel doesn’t drift with layout.
     @State private var activeDiveTargetPoint: CGPoint = .zero
-    /// Hide the List tab badge until the first-add +1 bubble finishes.
+    /// Hide the shopping-list button badge until the first-add +1 bubble finishes.
     @State private var suppressListTabBadgeForFirstAddDive = false
     /// Blocks Home/List interaction from dive start until the first-item explainer appears.
     @State private var blocksInteractionUntilFirstItemExplainer = false
@@ -100,108 +81,45 @@ struct ContentView: View {
         ShoppingListShareText.hasUncheckedItemsToShare(store: store)
     }
 
-    /// List tab badge when the dedicated setting is on (0 hides the badge).
+    /// All Items shopping-list button badge when the dedicated setting is on (0 hides the badge).
     private var listTabUncheckedBadge: Int {
         guard showListTabBadge else { return 0 }
         guard !suppressListTabBadgeForFirstAddDive else { return 0 }
         return ShoppingIconBadge.uncheckedCount(store: store)
     }
 
-    /// Theme used for tab chrome; follows the Settings draft so picks apply under the sheet immediately.
-    private var tabBarTheme: AppThemeSelection {
-        if isPresentingSettings {
-            return AppThemeSelection(
-                presetRaw: settingsThemeDraft,
-                customColorHex: settingsThemeCustomDraft
-            )
-        }
-        return appTheme
-    }
-
-    // MARK: - TabView root
+    // MARK: - Navigation root
 
     @ViewBuilder
     private var tabChrome: some View {
         ZStack(alignment: .bottomLeading) {
-            TabView(selection: $selectedTab) {
-                Tab(LocalizedCopy.tabList, systemImage: "checklist", value: TabSelection.store) {
-                    NavigationStack {
-                        ShoppingView(
-                            canShareShoppingList: canShareShoppingList,
-                            isStorePullToAddSearchPresented: $isStorePullToAddSearchPresented,
-                            onBeginPullToAddSearch: beginStoreTabPullToAdd,
-                            showsAddItemButton: false,
-                            onShare: presentShoppingListShare,
-                            onSettings: { isPresentingSettings = true },
-                            onManageStoreSections: { editGroupsSheetKind = .shopping },
-                            onAddItem: beginStoreTabPullToAdd
-                        )
-                    }
-                    // Keep nav/bottom toolbar controls label-colored; tab bar tint is UIKit-only.
-                    .tint(Color.primary)
-                }
-                .badge(listTabUncheckedBadge)
-
-                Tab(LocalizedCopy.tabLibrary, systemImage: "square.grid.2x2.fill", value: TabSelection.home) {
-                    NavigationStack {
-                        homeCatalogTabScreen
-                    }
-                    .tint(Color.primary)
-                }
-
-                // `role: .search` + searchable on *this* tab + `.tabViewSearchActivation`
-                // → separated clear-glass button (HIG). searchable must not live on the
-                // TabView root — that parks a top search field on List and Library.
-                if selectedTab.showsStoreSideAddControl {
-                    Tab(value: TabSelection.storeAdd, role: .search) {
-                        NavigationStack {
-                            Color.clear
-                                .accessibilityHidden(true)
-                                .searchable(text: $tabBarSearchText)
-                        }
-                    } label: {
-                        Label {
-                            Text(LocalizedCopy.addItem)
-                        } icon: {
-                            Image(uiImage: StoreSideAddSymbol.image(color: tabBarTheme.color))
-                        }
-                    }
-                } else {
-                    Tab(
-                        LocalizedCopy.search,
-                        systemImage: "magnifyingglass",
-                        value: TabSelection.homeSearch,
-                        role: .search
-                    ) {
-                        NavigationStack {
-                            Color.clear
-                                .accessibilityHidden(true)
-                                .searchable(text: $tabBarSearchText)
-                        }
-                    }
-                }
-            }
-            // Theme the selected tab glyph immediately. Each tab’s `NavigationStack` keeps
-            // `.tint(Color.primary)` so toolbars don’t pick up the accent — without this,
-            // UIKit re-tint on tab change lags a frame and flashes system blue.
-            .tint(tabBarTheme.color)
-            .tabViewSearchActivation(.searchTabSelection)
-            .modifier(
-                TabBarThemeModifier(
-                    theme: tabBarTheme,
-                    badgeCount: listTabUncheckedBadge,
-                    selectedTab: selectedTab,
-                    paintsStoreAddSymbol: selectedTab.showsStoreSideAddControl
+            NavigationStack {
+                ShoppingView(
+                    canShareShoppingList: canShareShoppingList,
+                    isStorePullToAddSearchPresented: $isStorePullToAddSearchPresented,
+                    onBeginPullToAddSearch: beginStoreTabPullToAdd,
+                    showsAddItemButton: true,
+                    onShare: presentShoppingListShare,
+                    onSettings: { isPresentingSettings = true },
+                    onManageStoreSections: { editGroupsSheetKind = .shopping },
+                    // Pull-down always opens pull-to-add (`onBeginPullToAddSearch`); only + honors the shortcut.
+                    onAddItem: handleShoppingListPlusTapped
                 )
-            )
-            .background {
-                ListTabDiveTargetReader(point: $listTabDiveTargetPoint)
-                    .frame(width: 0, height: 0)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+                .navigationDestination(isPresented: $isShowingAllItems) {
+                    homeCatalogTabScreen
+                }
             }
+            // Keep nav/bottom toolbar controls label-colored; themed controls opt in explicitly.
+            .tint(Color.primary)
             .catalogGroupedChromeBackdrop()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Above the toolbar so Liquid Glass can't blend or clip it (see `HomeShoppingListToolbarButton`).
+            ShoppingListButtonBadgeLayer(
+                anchor: shoppingListBadgeAnchor,
+                count: listTabUncheckedBadge
+            )
+            .zIndex(130)
 
             if blocksInteractionUntilFirstItemExplainer {
                 Color.clear
@@ -260,8 +178,9 @@ struct ContentView: View {
         .environmentObject(store)
     }
 
-    /// Home tab: rooted catalog (no back chevron). Edit enters reorder directly; ⋯ hosts
-    /// home sections / create / saved lists; search is a minimized bottom-trailing control.
+    /// All Items: pushed on the shopping list (no back chevron; bottom-leading list button + swipe-back).
+    /// Edit enters reorder directly; ⋯ hosts home sections / create / saved lists; search is a
+    /// minimized bottom-trailing control.
     private var homeCatalogTabScreen: some View {
         InventoryView(
             isReorderMode: $isInventoryReorderMode,
@@ -269,7 +188,7 @@ struct ContentView: View {
             isHomeToolbarSearchPresented: $isHomeToolbarSearchPresented,
             homeSearchText: $homeInventorySearchText,
             minimizesToolbarSearch: true,
-            showsToolbarSearchButton: false,
+            showsToolbarSearchButton: true,
             showsRecipesInTopBarLeading: true,
             bottomReservedHeight: 0,
             ignoresSafeArea: false,
@@ -290,7 +209,14 @@ struct ContentView: View {
             },
             onToolbarSelectGroupsKind: { editGroupsSheetKind = $0 },
             onBackToStore: nil,
-            onReturnToStoreAfterRecipeApply: { selectedTab = .store },
+            onShowShoppingList: { isShowingAllItems = false },
+            shoppingListBadgeCount: listTabUncheckedBadge,
+            onShoppingListButtonFrameChange: { frame in
+                shoppingListButtonDiveTarget.point = CGPoint(x: frame.midX, y: frame.midY)
+                shoppingListBadgeAnchor.buttonFrame = frame
+            },
+            onShoppingListButtonMountedChange: { shoppingListBadgeAnchor.isButtonMounted = $0 },
+            onReturnToStoreAfterRecipeApply: { isShowingAllItems = false },
             onFirstHomeAddDive: beginFirstAddToListDiveIfNeeded,
             onEditItem: { item in
                 inventoryCatalogEditorItem = item
@@ -300,7 +226,14 @@ struct ContentView: View {
             }
         )
         .navigationBarBackButtonHidden(true)
-        .enablesNavigationInteractivePopGesture(isEnabled: !isInventoryReorderMode)
+        .enablesNavigationInteractivePopGesture(
+            isEnabled: !isInventoryReorderMode,
+            // Badge fades in as the push begins; hide as soon as a pop (button or swipe) begins,
+            // and restore if an interactive swipe is cancelled (appear callbacks fire again).
+            onWillAppear: { shoppingListBadgeAnchor.isPageSettled = true },
+            onDidAppear: { shoppingListBadgeAnchor.isPageSettled = true },
+            onWillDisappear: { shoppingListBadgeAnchor.isPageSettled = false }
+        )
     }
 
     /// EXPERIMENT: pull-to-add as a sheet with Done (same chrome pattern as Settings).
@@ -320,6 +253,7 @@ struct ContentView: View {
                     isPresentingNewCatalogItem = true
                 },
                 onEndSearch: endStoreTabPullToAdd,
+                onShowAllItems: showAllItemsFromPullToAdd,
                 usesFocusedSearchField: true,
                 searchKeyboardSuppressed: $suppressPullToAddSearchKeyboard
             )
@@ -379,61 +313,42 @@ struct ContentView: View {
         isPresentingPullToAddSheet = false
     }
 
+    /// Shopping list +: All Items when **Shortcut to All Items** is on, otherwise pull-to-add.
+    private func handleShoppingListPlusTapped() {
+        if plusOpensAllItems {
+            isShowingAllItems = true
+        } else {
+            beginStoreTabPullToAdd()
+        }
+    }
+
+    /// Pull-to-add **All Items**: close the sheet and push All Items underneath it.
+    private func showAllItemsFromPullToAdd() {
+        endStoreTabPullToAdd()
+        isShowingAllItems = true
+    }
+
     var body: some View {
         tabChrome
-        .onChange(of: selectedTab) { previous, current in
-            // Intercept side-tab taps: bounce back and trigger the associated action.
-            if current == .storeAdd {
-                tabBarSearchText = ""
-                bounceTabSelection(to: .store)
-                beginStoreTabPullToAdd()
-                return
-            }
-            if current == .homeSearch {
-                tabBarSearchText = ""
-                bounceTabSelection(to: .home)
-                // Present after the bounce so Home’s searchable mounts on the Library
-                // tab (not during the brief search-role selection).
-                DispatchQueue.main.async {
-                    isHomeToolbarSearchPresented = true
-                }
-                return
-            }
-            if current == .home {
+        .onChange(of: isShowingAllItems) { _, showing in
+            if showing {
                 hasVisitedHomeCatalog = true
+                return
             }
-            if current == .store {
-                isHomeToolbarSearchPresented = false
-                scheduleStoreGesturesExplainerIfNeeded()
+            // Popped back to the shopping list (button or swipe-back).
+            isHomeToolbarSearchPresented = false
+            homeInventorySearchText = ""
+            if isInventoryReorderMode {
+                isInventoryReorderMode = false
             }
-            if previous == .home {
-                if isInventoryReorderMode {
-                    isInventoryReorderMode = false
-                }
-                // Clear shared expansion now; remount rows when Library becomes active again
-                // (off-screen Home won't apply local `@State` resets until then).
-                if expandedHomeQuantityPillItemID != nil {
-                    homeQuantityPillNeedsChromeReset = true
-                }
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    expandedHomeQuantityPillItemID = nil
-                }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                expandedHomeQuantityPillItemID = nil
             }
-            if current == .home, homeQuantityPillNeedsChromeReset {
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    homeQuantityPillChromeID = UUID()
-                    homeQuantityPillNeedsChromeReset = false
-                }
-            }
+            scheduleStoreGesturesExplainerIfNeeded()
         }
         .onAppear {
-            if selectedTab == .home {
-                hasVisitedHomeCatalog = true
-            }
             markFirstShoppingItemExplainerSeenIfShoppingListAlreadyPopulated()
             scheduleWelcomeExplainerIfNeeded()
             scheduleStoreGesturesExplainerIfNeeded()
@@ -571,7 +486,7 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .shareExtensionShoppingOpsMerged)) { note in
             let count = note.userInfo?[ShareExtensionAppGroupSupport.mergedOpCountUserInfoKey] as? Int ?? 0
             guard count > 0 else { return }
-            selectedTab = .store
+            isShowingAllItems = false
             isPresentingPullToAddSheet = false
             isStorePullToAddSearchPresented = false
             storePullToAddSearchText = ""
@@ -600,15 +515,6 @@ struct ContentView: View {
         isStorePullToAddSearchPresented = false
         isPresentingNewCatalogItem = false
         endStoreTabPullToAdd()
-    }
-
-    /// Immediately returns the tab selection without animation so intercept-only tabs never stay selected.
-    private func bounceTabSelection(to target: TabSelection) {
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            selectedTab = target
-        }
     }
 
     @ViewBuilder
@@ -687,12 +593,10 @@ struct ContentView: View {
         guard !hasSeenFirstShoppingItemExplainer else { return }
         guard !firstAddToListDive.isActive else { return }
         firstShoppingItemExplainerTask?.cancel()
-        // Straight vertical dive: keep the item’s x, use List-tab bar height for y.
-        let listTabY =
-            (listTabDiveTargetPoint == .zero
-                ? (ListTabIconFrameLocator.listTabIconCenterInWindow() ?? listTabDiveFallbackPoint)
-                : listTabDiveTargetPoint).y
-        activeDiveTargetPoint = CGPoint(x: sourceFrame.midX, y: listTabY)
+        // Dive into the All Items shopping-list button (bottom leading).
+        activeDiveTargetPoint = shoppingListButtonDiveTarget.point == .zero
+            ? shoppingListButtonDiveFallbackPoint
+            : shoppingListButtonDiveTarget.point
         suppressListTabBadgeForFirstAddDive = true
         blocksInteractionUntilFirstItemExplainer = true
         firstAddToListDive.begin(itemName: itemName, sourceFrame: sourceFrame)
@@ -733,10 +637,14 @@ struct ContentView: View {
         }
     }
 
-    /// Fallback when the live tab probe hasn’t published yet (2-tab centered bar).
-    private var listTabDiveFallbackPoint: CGPoint {
+    /// Fallback when the shopping-list button hasn’t reported its frame yet (bottom-leading toolbar slot).
+    private var shoppingListButtonDiveFallbackPoint: CGPoint {
         let bounds = keyWindowSceneBounds
-        return CGPoint(x: bounds.midX - bounds.width * 0.12, y: bounds.height - 40)
+        let inset: CGFloat = 46
+        let x = AppSystemLocale.interfaceLayoutDirection == .rightToLeft
+            ? bounds.maxX - inset
+            : bounds.minX + inset
+        return CGPoint(x: x, y: bounds.height - 48)
     }
 
     private var keyWindowSceneBounds: CGRect {
@@ -766,13 +674,13 @@ struct ContentView: View {
         }
     }
 
-    /// First visit to a non-empty List (Store tab). Waits for the first-item explainer
+    /// First visit to a non-empty shopping list. Waits for the first-item explainer
     /// when both are pending so they don't race.
     private func scheduleStoreGesturesExplainerIfNeeded() {
         guard !hasSeenStoreGesturesExplainer else { return }
         guard hasSeenFirstShoppingItemExplainer else { return }
         guard !store.shopping.isEmpty else { return }
-        guard selectedTab == .store else { return }
+        guard !isShowingAllItems else { return }
         guard !isPresentingSettings else { return }
         guard !isStorePullToAddSearchPresented else { return }
         if isPresentingPullToAddSheet { return }
@@ -783,7 +691,7 @@ struct ContentView: View {
             guard !hasSeenStoreGesturesExplainer else { return }
             guard hasSeenFirstShoppingItemExplainer else { return }
             guard !store.shopping.isEmpty else { return }
-            guard selectedTab == .store else { return }
+            guard !isShowingAllItems else { return }
             guard !isPresentingSettings else { return }
             guard !isStorePullToAddSearchPresented else { return }
             if isPresentingPullToAddSheet { return }
@@ -809,6 +717,91 @@ struct ContentView: View {
         }
     }
 
+}
+
+/// Mutable holder for the first-add dive target; writes don't invalidate SwiftUI views.
+private final class DiveTargetPointBox {
+    var point: CGPoint = .zero
+}
+
+/// Where and when to draw the All Items shopping-list badge (observed only by the badge layer).
+private final class ShoppingListBadgeAnchor: ObservableObject {
+    /// Button frame in window coordinates.
+    @Published var buttonFrame: CGRect = .zero
+    /// All Items is appearing/visible and no pop is in progress.
+    @Published var isPageSettled = false
+    /// Button is in the toolbar (false in edit mode, before mount, after pop).
+    @Published var isButtonMounted = false
+}
+
+/// Unchecked-count badge pinned to the All Items shopping-list button's top-trailing corner.
+/// Drawn above the navigation stack: inside the toolbar, Liquid Glass blends it (translucent) and
+/// clips it while the bar morphs in.
+private struct ShoppingListButtonBadgeLayer: View {
+    @ObservedObject var anchor: ShoppingListBadgeAnchor
+    let count: Int
+    @Environment(\.appTheme) private var appTheme
+
+    private static let badgeHeight: CGFloat = 16
+    /// How far the badge center sits outside the button frame's top-trailing corner.
+    private static let cornerOutset = CGPoint(x: 1, y: 1)
+
+    /// The toolbar animates the button in by scaling its frame (Edit → Done: ~7pt → ~39pt → 36pt over
+    /// ~0.8s, with sparse updates; on push it first reports an off-screen placeholder at (-18, -18),
+    /// then 43pt frames). The finished button is exactly the tap-target size and on-screen, so pin
+    /// the badge only to such a frame — no timers needed.
+    private var hasSettledButtonFrame: Bool {
+        let frame = anchor.buttonFrame
+        let size = CatalogToolbarTapChrome.iconTapDiameter
+        let tolerance: CGFloat = 0.5
+        return abs(frame.width - size) <= tolerance
+            && abs(frame.height - size) <= tolerance
+            && frame.minX >= 0
+            && frame.minY >= 0
+    }
+
+    private var isVisible: Bool {
+        count > 0
+            && anchor.isButtonMounted
+            && anchor.isPageSettled
+            && hasSettledButtonFrame
+    }
+
+    private var badgeText: String {
+        count > 99 ? "99+" : "\(count)"
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let origin = proxy.frame(in: .global).origin
+            let frame = anchor.buttonFrame
+            // Window coordinates are physical; pick the trailing corner for the interface direction.
+            let isRTL = AppSystemLocale.interfaceLayoutDirection == .rightToLeft
+            let cornerX = isRTL ? frame.minX + Self.cornerOutset.x : frame.maxX - Self.cornerOutset.x
+            let cornerY = frame.minY + Self.cornerOutset.y
+            Text(badgeText)
+                .font(.caption2.weight(.bold))
+                .monospacedDigit()
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, 4)
+                .frame(minWidth: Self.badgeHeight, minHeight: Self.badgeHeight)
+                .background(Capsule().fill(appTheme.color))
+                .fixedSize()
+                .position(x: cornerX - origin.x, y: cornerY - origin.y)
+                // Never animate placement: frame updates can arrive inside other transactions
+                // (e.g. Edit → Done remounting the button), which made the badge slide in.
+                .transaction { $0.animation = nil }
+                .opacity(isVisible ? 1 : 0)
+                // Fade in alongside the push (toolbar items morph in place, they don't slide);
+                // disappear instantly when a pop begins.
+                .animation(isVisible ? .easeOut(duration: 0.25) : nil, value: isVisible)
+        }
+        // Positions are computed in physical (window) coordinates — don't let RTL mirror them.
+        .environment(\.layoutDirection, .leftToRight)
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
 }
 
 // MARK: - Swipe back with a custom toolbar back control
@@ -849,14 +842,27 @@ private final class NavigationInteractivePopGestureDelegate: NSObject, UIGesture
 /// coordinates scroll pans so swipe-back works during active list scroll, not only when idle.
 private struct NavigationInteractivePopEnabler: UIViewControllerRepresentable {
     var isEnabled: Bool = true
+    /// Page is about to appear (push starting, or an interactive pop being cancelled).
+    var onWillAppear: (() -> Void)? = nil
+    /// Page finished appearing (push landed, or an interactive pop was cancelled).
+    var onDidAppear: (() -> Void)? = nil
+    /// Page is about to leave (pop started by button or swipe).
+    var onWillDisappear: (() -> Void)? = nil
 
     func makeUIViewController(context: Context) -> UIViewController {
-        NavigationInteractivePopEnablerViewController(isPopEnabled: isEnabled)
+        let controller = NavigationInteractivePopEnablerViewController(isPopEnabled: isEnabled)
+        controller.onWillAppear = onWillAppear
+        controller.onDidAppear = onDidAppear
+        controller.onWillDisappear = onWillDisappear
+        return controller
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
         guard let controller = uiViewController as? NavigationInteractivePopEnablerViewController else { return }
         controller.isPopEnabled = isEnabled
+        controller.onWillAppear = onWillAppear
+        controller.onDidAppear = onDidAppear
+        controller.onWillDisappear = onWillDisappear
         controller.applyInteractivePopGestureState()
     }
 
@@ -864,6 +870,9 @@ private struct NavigationInteractivePopEnabler: UIViewControllerRepresentable {
         private let popGestureDelegate = NavigationInteractivePopGestureDelegate()
         private var coordinatedScrollViews = NSHashTable<UIScrollView>.weakObjects()
         var isPopEnabled: Bool
+        var onWillAppear: (() -> Void)?
+        var onDidAppear: (() -> Void)?
+        var onWillDisappear: (() -> Void)?
 
         init(isPopEnabled: Bool) {
             self.isPopEnabled = isPopEnabled
@@ -878,11 +887,18 @@ private struct NavigationInteractivePopEnabler: UIViewControllerRepresentable {
         override func viewDidAppear(_ animated: Bool) {
             super.viewDidAppear(animated)
             applyInteractivePopGestureState()
+            onDidAppear?()
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            onWillDisappear?()
         }
 
         override func viewWillAppear(_ animated: Bool) {
             super.viewWillAppear(animated)
             applyInteractivePopGestureState()
+            onWillAppear?()
         }
 
         override func viewDidLayoutSubviews() {
@@ -940,94 +956,19 @@ private struct NavigationInteractivePopEnabler: UIViewControllerRepresentable {
 }
 
 private extension View {
-    func enablesNavigationInteractivePopGesture(isEnabled: Bool = true) -> some View {
-        background(NavigationInteractivePopEnabler(isEnabled: isEnabled))
-    }
-}
-
-/// SF Symbol `plus` rendered with `.alwaysOriginal` tint for the Store side-add control.
-private enum StoreSideAddSymbol {
-    static func image(color: Color) -> UIImage {
-        let config = UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
-        let base = UIImage(systemName: "plus", withConfiguration: config) ?? UIImage()
-        return base.withTintColor(UIColor(color), renderingMode: .alwaysOriginal)
-    }
-}
-
-/// Themes selected tab symbols and List tab badge via tint only.
-/// Do not replace `standardAppearance` / `scrollEdgeAppearance` — that can collapse
-/// Liquid Glass’s separated search-button layout back into the main capsule.
-private struct TabBarThemeModifier: ViewModifier {
-    var theme: AppThemeSelection
-    var badgeCount: Int
-    var selectedTab: TabSelection
-    /// When true, restamp the trailing side-tab glyph as a themed + (image only).
-    var paintsStoreAddSymbol: Bool = false
-
-    func body(content: Content) -> some View {
-        content
-            .onAppear {
-                // Immediate + deferred: SwiftUI attaches `.badge` after first layout, and
-                // that pass uses the default red unless we stamp `badgeColor` again.
-                Self.apply(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
-                Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
-            }
-            .onChange(of: theme) { _, newTheme in
-                Self.apply(newTheme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
-                Self.reapplyAfterLayout(newTheme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
-            }
-            .onChange(of: badgeCount) { _, _ in
-                Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
-            }
-            .onChange(of: selectedTab) { _, _ in
-                // Immediate + deferred: tab swaps remount the side control and can reset
-                // UIKit tint for a frame without the synchronous pass.
-                Self.apply(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
-                Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paintsStoreAddSymbol)
-            }
-            .onChange(of: paintsStoreAddSymbol) { _, paints in
-                Self.apply(theme.color, paintsStoreAddSymbol: paints)
-                Self.reapplyAfterLayout(theme.color, paintsStoreAddSymbol: paints)
-            }
-    }
-
-    private static func reapplyAfterLayout(_ color: Color, paintsStoreAddSymbol: Bool) {
-        Task { @MainActor in
-            await Task.yield()
-            apply(color, paintsStoreAddSymbol: paintsStoreAddSymbol)
-            await Task.yield()
-            apply(color, paintsStoreAddSymbol: paintsStoreAddSymbol)
-        }
-    }
-
-    private static func apply(_ color: Color, paintsStoreAddSymbol: Bool) {
-        let uiColor = UIColor(color)
-        UITabBar.appearance().tintColor = uiColor
-        // Future tab items (including the first `.badge` attach) inherit theme, not system red.
-        UITabBarItem.appearance().badgeColor = uiColor
-
-        for scene in UIApplication.shared.connectedScenes {
-            guard let windowScene = scene as? UIWindowScene else { continue }
-            for window in windowScene.windows {
-                paintLiveTabBars(in: window, color: uiColor, paintsStoreAddSymbol: paintsStoreAddSymbol)
-            }
-        }
-    }
-
-    private static func paintLiveTabBars(in view: UIView, color: UIColor, paintsStoreAddSymbol: Bool) {
-        if let tabBar = view as? UITabBar {
-            tabBar.tintColor = color
-            tabBar.items?.forEach { $0.badgeColor = color }
-            // Swap only the glyph — do not replace the tab item (that collapses search separation).
-            if paintsStoreAddSymbol, let side = tabBar.items?.last {
-                let plus = StoreSideAddSymbol.image(color: Color(uiColor: color))
-                side.image = plus
-                side.selectedImage = plus
-                side.title = LocalizedCopy.addItem
-            }
-        }
-        for subview in view.subviews {
-            paintLiveTabBars(in: subview, color: color, paintsStoreAddSymbol: paintsStoreAddSymbol)
-        }
+    func enablesNavigationInteractivePopGesture(
+        isEnabled: Bool = true,
+        onWillAppear: (() -> Void)? = nil,
+        onDidAppear: (() -> Void)? = nil,
+        onWillDisappear: (() -> Void)? = nil
+    ) -> some View {
+        background(
+            NavigationInteractivePopEnabler(
+                isEnabled: isEnabled,
+                onWillAppear: onWillAppear,
+                onDidAppear: onDidAppear,
+                onWillDisappear: onWillDisappear
+            )
+        )
     }
 }
