@@ -1177,6 +1177,9 @@ final class GroceryStore: ObservableObject {
     // MARK: - Load & save (v3)
 
     private func loadFromDiskOrLegacy() {
+        // Phase 0a: library files are the primary copy. When none exist yet (first launch after
+        // updating), fall through to UserDefaults below; `init` then saves, which creates the files.
+        if loadFromLibraryFilesIfPresent() { return }
         let d = UserDefaults.standard
         if d.data(forKey: Self.v3EnglishKey) != nil
             || d.data(forKey: Self.v3HebrewKey) != nil
@@ -1233,11 +1236,49 @@ final class GroceryStore: ObservableObject {
         hebrew = .empty
     }
 
+    /// Loads both languages from the library files. Returns `false` when neither file exists yet.
+    private func loadFromLibraryFilesIfPresent() -> Bool {
+        let englishFile = LibraryFileStore.load(.english)
+        let hebrewFile = LibraryFileStore.load(.hebrew)
+        guard englishFile != nil || hebrewFile != nil else { return false }
+        english = loadBundle(fileData: englishFile, language: .english, defaultsKey: Self.v3EnglishKey)
+        hebrew = loadBundle(fileData: hebrewFile, language: .hebrew, defaultsKey: Self.v3HebrewKey)
+        return true
+    }
+
+    /// One language: file first, UserDefaults copy as the fallback.
+    private func loadBundle(fileData: Data?, language: AppContentLanguage, defaultsKey: String) -> V3Bundle {
+        let defaultsData = UserDefaults.standard.data(forKey: defaultsKey)
+        // While dual-writing (1.2), both copies hold identical bytes. A *different* UserDefaults copy
+        // means an older build (e.g. 1.1 installed over this one while testing) saved after us —
+        // trust that newer copy. Remove this check together with the dual-write in 1.3.
+        if let defaultsData, defaultsData != fileData,
+           let bundle = try? decoder.decode(V3Bundle.self, from: defaultsData)
+        {
+            return bundle
+        }
+        if let fileData {
+            if let bundle = try? decoder.decode(V3Bundle.self, from: fileData) {
+                return bundle
+            }
+            // Unreadable file: keep it for recovery instead of overwriting it on the next save.
+            LibraryFileStore.setAsideUnreadableFile(language)
+        }
+        if let defaultsData, let bundle = try? decoder.decode(V3Bundle.self, from: defaultsData) {
+            return bundle
+        }
+        return .empty
+    }
+
     private func saveAllToDisk() {
         if let d = try? encoder.encode(english) {
+            LibraryFileStore.save(d, for: .english)
+            // Dual-write fallback for 1.2 (keeps the old copy current). Remove in 1.3.
             UserDefaults.standard.set(d, forKey: Self.v3EnglishKey)
         }
         if let d = try? encoder.encode(hebrew) {
+            LibraryFileStore.save(d, for: .hebrew)
+            // Dual-write fallback for 1.2 (keeps the old copy current). Remove in 1.3.
             UserDefaults.standard.set(d, forKey: Self.v3HebrewKey)
         }
         ShareExtensionAppGroupSupport.writeCatalogSnapshotToAppGroup(englishCatalog: english.catalog, hebrewCatalog: hebrew.catalog)
