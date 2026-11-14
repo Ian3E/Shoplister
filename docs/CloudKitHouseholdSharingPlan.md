@@ -1,313 +1,168 @@
-# CloudKit multi-user shared household
+# Household sync plan (CloudKit)
 
-> Saved from implementation plan — June 2026.
->
-> **Scope:** Shared home library + shopping list for multiple users in one household via CloudKit + CKShare.
-> **Status:** Plan only — Phase 1 implementation was reverted; see phases below when resuming.
+> **Scope:** Sync the item library, shopping list, sections, and saved lists across a user's own devices, then share them with a household.
+> **Status:** Planning. Updated November 2026 — replaces the June 2026 plan and `MultiUserSharingPlan.md`. Nothing is implemented yet.
+> **Priorities:** simplicity and reliability over features.
 
 ---
 
 ## Product decisions (confirmed)
 
-- **Local-only remains the default.** Sharing requires iCloud; users without iCloud keep today's fully offline experience.
-- **One active household per user.** Simplifies CKShare ownership, Settings UX, and App Group snapshot scope.
-- **Single library language per household.** All members share one catalog + shopping list in one language (English or Hebrew). There is no parallel EN/HE bundle in the cloud for the same household.
-- **Household language change = household-wide reset.** If any household member changes library language in Settings, it triggers the same destructive reset as today (`resetLibraryToInitialSeed()` — wipe catalog, tags, shopping, recipes, images; reseed defaults) and updates `Household.libraryLanguage` for **all members** via sync. Reuse the existing confirmation alert pattern in Settings, with copy updated to warn that the reset affects the whole household.
-
-### Local-only vs household language model
-
-| Mode | Library data |
-|------|----------------|
-| **Local-only** (no household) | Keep today's dual-bundle model (`grocery.v3.english` / `grocery.v3.hebrew` in UserDefaults). Language switch resets both sides locally — unchanged. |
-| **Household member** | Single shared `V3Bundle` in CloudKit keyed by `householdID`. Member's `app.catalogContentLanguage` must match `Household.libraryLanguage`. No per-member language-specific catalog. |
-
-```mermaid
-flowchart LR
-    subgraph localOnly [Local-only user]
-        EN[(EN V3Bundle)]
-        HE[(HE V3Bundle)]
-        PICK[Settings language picker]
-        PICK -->|reset both| EN
-        PICK -->|reset both| HE
-    end
-
-    subgraph household [Household]
-        HL[Household.libraryLanguage]
-        HB[(Single shared V3Bundle)]
-        M1[Member A]
-        M2[Member B]
-        HL --> HB
-        M1 --> HB
-        M2 --> HB
-        M1 -->|language change| RESET[Household-wide seed reset]
-        RESET --> HB
-        RESET --> HL
-    end
-```
-
-## Current state (at time of plan)
-
-Shoplister is **100% local**:
-
-- `GroceryStore.swift` owns all mutations and persists two `V3Bundle` JSON blobs to `UserDefaults` (`grocery.v3.english` / `grocery.v3.hebrew`)
-- Item photos are local JPEGs via `ItemImageStore.swift`
-- Share extension + App Intent use App Group IPC only (`ShareExtensionAppGroupSupport.swift`)
-- Entitlements: App Group only (`Shoplister.entitlements`) — **no CloudKit**
-
-```mermaid
-flowchart TB
-    subgraph today [Today]
-        GS[GroceryStore]
-        UD[(UserDefaults V3Bundle)]
-        IMG[(Local JPEGs)]
-        GS --> UD
-        GS --> IMG
-    end
-
-    subgraph target [Target]
-        GSF[GroceryStore facade]
-        CACHE[(Local cache)]
-        PREFS[(UserDefaults prefs)]
-        SYNC[CloudKitSyncService]
-        CKP[CK private DB]
-        CKS[CK shared DB via CKShare]
-        ASSETS[CKAssets]
-        GSF --> CACHE
-        GSF --> PREFS
-        GSF --> SYNC
-        SYNC --> CKP
-        SYNC --> CKS
-        SYNC --> ASSETS
-    end
-
-    today -.->|refactor| target
-```
+| Decision | Detail |
+|---|---|
+| Local-only is the default | Sharing requires iCloud. Without iCloud the app works exactly as today. |
+| One household per user | Simplifies share ownership, Settings UI, and the share-extension snapshot. |
+| One library language per household | All members share one catalog + list in one language. The inactive language's library stays local on each device. |
+| Language change = household-wide reset | Same destructive reset as today, applied to everyone. **Only the owner can change it.** Members see the language as read-only. |
+| Photos come last | Data sync ships and stabilizes first; item photos sync in the final phase. |
 
 ---
 
-## Architecture
+## Technical approach
 
-### Layered storage
+### One sync technology: CKSyncEngine
 
-Refactor `GroceryStore` from "store + persistence" into a **facade** over three layers:
+| Option | Household sharing | Verdict |
+|---|---|---|
+| SwiftData + CloudKit | Not supported (`ModelConfiguration.CloudKitDatabase` is private-only) | Ruled out |
+| SwiftData sync + a manual CKShare layer | Possible, fragile | Two sync systems over one store — avoid |
+| Core Data + `NSPersistentCloudKitContainer` sharing | Supported | Requires rewriting the model layer into Core Data; sync is opaque and hard to debug |
+| **CKSyncEngine** (iOS 17+) | Supported (private + shared databases) | **Chosen.** Keeps our Codable models and own persistence; the engine handles scheduling, push, retries, and change tokens. We own record mapping and conflict rules. |
 
-| Layer | Responsibility | Technology |
-|-------|----------------|------------|
-| **UI facade** | `@Published` arrays, existing mutation API | `GroceryStore` (slimmed) |
-| **Local cache** | Optimistic reads/writes, offline queue, migration source | SwiftData (recommended on iOS 26) or SQLite |
-| **Cloud sync** | CK record CRUD, subscriptions, share lifecycle | New `CloudKitSyncService` + `HouseholdRepository` |
+### Data layout
 
-UI mutations write to local cache **immediately** (snappy UX), enqueue sync ops, and apply remote deltas via CK push + foreground fetch.
-
-### CloudKit topology
-
-| Database | Contents |
-|----------|----------|
-| **Private** | User profile pointer, active `householdID`, pending invites metadata, sync cursor tokens |
-| **Shared (CKShare)** | Household root + all domain records for the active household |
-
-**CKShare root record:** `Household` — participants get read/write on child records (items, tags, shopping entries, recipes).
-
-**Container:** `iCloud.com.ianengelman.shoplister` (new capability in Xcode + CloudKit Dashboard schema).
-
-### CloudKit record types
+- **One custom record zone per household**, `Household`, in the owner's private database.
+- **Zone-wide sharing:** `CKShare(recordZoneID:)` shares the entire zone. No root/child record references; anything added to the zone is shared automatically. (Also avoids the root-record `CKShare(rootRecord:)` path, which has had iOS 26.x regressions reported.)
+- **One CKRecord per object** (never a single blob, which would make every edit overwrite the whole list):
 
 ```
-Household          — id, name, libraryLanguage (english|hebrew), createdAt, ownerRecordName, shareReference
-GroceryItem        — id, householdID, name, inventoryTagID, shoppingTagID, sortOrder, hasImage, modifiedAt, modifiedBy, isDeleted
-Tag                — id, householdID, kind, title, sortOrder, modifiedAt, isDeleted
-ShoppingEntry      — id, householdID, itemID, quantity, isChecked, addedAt, modifiedAt, isDeleted
-Recipe             — id, householdID, name, sortOrder, lines (JSON or child records), modifiedAt, isDeleted
-ItemImage          — itemID, householdID, asset (CKAsset), thumbnailAsset (optional)
+HouseholdInfo  — libraryLanguage, name                       (one record)
+Item           — name, inventoryTagID, shoppingTagID, sortOrder, hasImage, modifiedAt
+Section        — kind (inventory|shopping), title, sortOrder, modifiedAt
+ShoppingEntry  — itemID, quantity, isChecked, addedAt, modifiedAt
+SavedList      — name, sortOrder, lines (encoded), modifiedAt
+ItemPhoto      — itemID, asset (CKAsset)                     (final phase)
 ```
 
-No `language` field on domain records — language is a **household-level property** on `Household.libraryLanguage`. Indexes on `householdID` only.
+- **Record names are our existing UUIDs**, so local IDs and CloudKit IDs never drift. (Backups already preserve item IDs.)
+- **Each local object stores its CKRecord system fields** (archived change tag) so saves are conflict-aware.
 
-Use **tombstones** (`isDeleted`) rather than hard deletes for sync propagation.
+### Engines
+
+| User | Engine(s) |
+|---|---|
+| Solo / household owner | One CKSyncEngine on the **private** database (owns the `Household` zone) |
+| Household member | One CKSyncEngine on the **shared** database (the owner's zone, via the share) |
+
+Phase 1 (own devices) and Phase 2 (household) use the **same zone and record code**; Phase 2 only adds sharing and the shared-database engine.
 
 ### Conflict rules (v1)
 
-| Action | Rule |
-|--------|------|
-| Shopping qty / checked | Field-level last-write-wins using `modifiedAt` |
-| Duplicate add-to-shopping | Merge into one line, sum quantities |
-| Catalog name / tag edit | Last-write-wins |
-| Catalog delete with shopping refs | Tombstone item; remove shopping lines |
-| Reorder | Higher `modifiedAt` on `sortOrder` wins |
-| **Library language change** | Household-wide reset: tombstone/delete all domain records, reseed from `BilingualSeedCatalog` for new language, update `Household.libraryLanguage`, sync to all members |
-| Offline concurrent edits | Replay local op queue on reconnect |
+| Case | Rule |
+|---|---|
+| Most fields | Last write wins by `modifiedAt` |
+| Shopping quantity / checked | Per field, last write wins |
+| Same item added twice | Merge into one entry, sum quantities |
+| Delete vs edit | Delete wins; deleting an item removes its shopping entries and saved-list lines |
+| Reorder | Last write wins on `sortOrder` |
+| Language reset (owner) | Owner deletes all zone records, reseeds, updates `HouseholdInfo.libraryLanguage`; members apply it on next fetch |
 
-Avoid CRDTs until real-world conflict pain appears.
+No CRDTs unless real-world use shows a need.
 
----
+### Unchanged
 
-## User-facing flows
-
-### Settings: new "Household" section
-
-| State | UI |
-|-------|-----|
-| Local-only (default) | "Share with household" → explains iCloud requirement → Create household |
-| Household owner | Household name, members list, Invite (share link), Leave / Delete household |
-| Household member | Household name, members, Leave |
-| iCloud unavailable | Banner: sharing disabled; app works locally |
-| Sync error | Retry + last-updated timestamp |
-
-### Library language (Settings)
-
-| Mode | Behavior |
-|------|----------|
-| Local-only | Unchanged: picker shows EN/HE; confirm → `resetLibraryToInitialSeed()` locally |
-| Household member | Picker shows EN/HE; confirm → household-wide reset + `libraryLanguage` update pushed to CloudKit; all members receive reset on next sync. Alert copy must state this affects **everyone in the household**. Members cannot maintain a personal alternate-language catalog while in a household. |
-
-When a member's device language preference drifts from `Household.libraryLanguage` (e.g. after join), reconcile on launch: adopt household language and refresh local cache from cloud.
-
-### First-run / upgrade migration
-
-When user taps **Create household from this library**:
-
-1. Offer backup export (`LibraryBackupCodec`) as safety net
-2. Set `Household.libraryLanguage` to the user's **current active** catalog language
-3. Upload that language's `V3Bundle` + images to new shared zone (do not upload the inactive language bundle)
-4. Mark local data as bound to `householdID`
-5. Enable sync going forward
-
-When user **Accepts invite** (`CKShare.Metadata`):
-
-1. Do not silently wipe local catalog — prompt: Replace with household data / Keep local (stay local-only) / Export first
-2. Set active `householdID` in private DB
-3. Set `catalogLanguageRaw` to household's `libraryLanguage`
-4. Fetch shared records into local cache (single bundle)
-
-### Modes
-
-```mermaid
-stateDiagram-v2
-    [*] --> LocalOnly: fresh install
-    LocalOnly --> HouseholdMember: accept invite
-    LocalOnly --> HouseholdOwner: create household
-    HouseholdOwner --> LocalOnly: delete household
-    HouseholdMember --> LocalOnly: leave household
-```
-
-Local-only users: no CloudKit writes, no behavior change from today.
+- Share extension + Shortcuts intent keep enqueueing ops in the App Group; the host app applies them (and from Phase 1, syncs them).
+- Backup export/import stays as the manual escape hatch.
 
 ---
 
-## Phased implementation
+## Phases
 
-### Phase 1 — Foundation (single-user iCloud sync, no invites)
+### Phase 0 — Storage move (no cloud) → ship as 1.2
 
-**Goal:** Prove migration off UserDefaults + image sync across a user's own devices.
+Goal: get off UserDefaults and give sync a single mutation path, with **no visible behavior change**. Shipping this alone proves the migration on real installs before CloudKit is involved.
 
-- Add CloudKit + Push entitlements to main app
-- Define CK schema in CloudKit Dashboard (Development)
-- Introduce SwiftData local cache mirroring `V3Bundle` entities
-- Build `CloudKitSyncService`: upload/download **one active `V3Bundle`** per user/household in **private DB** (Phase 1 mirrors solo user's active language only; inactive local bundle stays device-local until household)
-- Migrate `grocery.v3.*` UserDefaults → cache on first launch; keep UserDefaults as fallback until stable
-- `ItemImageStore` → local cache + `CKAsset` upload/download pipeline
-- Slim `GroceryStore`: mutations → cache → sync queue
-- Settings: iCloud status indicator, manual "Sync now", error state
-- Unit tests: round-trip encode/decode, offline queue replay, image asset pipeline
+**0a. Library files**
+- Store each language's library as JSON in the App Group container: `Library/english.json`, `Library/hebrew.json` (atomic writes).
+- First launch after update: if the files don't exist, read the existing `grocery.v3.english` / `grocery.v3.hebrew` UserDefaults data, write the files, then continue from files.
+- **Dual-write for one release:** 1.2 keeps writing UserDefaults too, so a fallback is always current. 1.3 removes it.
+- If a file fails to decode: don't overwrite it; move it aside (`*.corrupt-<timestamp>.json`) and fall back to the UserDefaults copy.
+- Share-extension catalog snapshot keeps working unchanged.
 
-**Exit criteria:** Edit shopping list on iPhone A, see update on iPhone B (same Apple ID) within ~30s.
+**0b. One mutation path in `GroceryStore`**
+- Replace the duplicated `if hebrew { … } else { … }` branches (36 sites) with one helper that edits the *active* bundle, then sorts, saves, and republishes.
+- Public API unchanged — no view changes.
+- This becomes the single place where Phase 1 records "these objects changed" for sync.
 
-### Phase 2 — Household + CKShare
+**0c. Photos untouched** — still JPEGs in Application Support.
 
-**Goal:** Multi-user shared catalog + shopping list.
+**Test before shipping**
+- Upgrade: install 1.1 with real data (items, sections, list, saved lists, photos), install the 1.2 build over it, verify everything is intact; relaunch twice.
+- Fresh install: seeded library appears in both languages.
+- Language switch, clear library, reset to defaults.
+- Backup export → import round-trip.
+- Share extension and Shortcuts import.
+- Kill the app right after an edit; relaunch; edit is there.
 
-- Add `Household` root record with `libraryLanguage` + `CKShare` creation in private DB
-- Move single-language domain records from private DB → shared DB zone on household creation
-- `HouseholdRepository`: create, invite (`UICloudSharingController`), accept, leave, delete, transfer ownership
-- Handle share acceptance in `ShoplisterApp.swift` via `CKShare.Metadata` / `userDidAcceptCloudKitShareWith`
-- CK subscriptions on `ShoppingEntry` + `GroceryItem` for push-driven updates
-- Settings Household UI (confirmed: one active household)
-- Enforce: sharing requires iCloud; local-only users unaffected
+### Phase 1 — Sync across your own devices
 
-**Exit criteria:** Two different Apple IDs in same household see shared shopping list updates in near-real-time.
+- Apple setup: iCloud capability + CloudKit container **`iCloud.com.byteloft.apps.shoplister`** (container IDs are permanent), Push Notifications, Background Modes → Remote notifications.
+- `SyncService` wrapping one CKSyncEngine (private DB), persisted engine state, `Household` zone.
+- Map local objects ↔ CKRecords; send changes from the Phase 0b mutation path; apply fetched changes; conflict rules above; tombstones for deletes.
+- First enable: upload the active-language library into the zone.
+- Settings: iCloud status, last synced time, "Sync now", error state.
+- **Done when:** an edit on one device appears on another with the same Apple ID.
 
-### Phase 3 — Extension + polish
+### Phase 2 — Household sharing
 
-- Host app refreshes App Group catalog snapshot from **active household cache** (single language, stable item IDs)
-- Share extension + `ImportTextToShoppingListIntent` enqueue ops; host merges to cloud
-- Offline UX: "Changes will sync when online"
-- Migration wizard polish, conflict toasts for rare failures
-- CloudKit Dashboard → Production schema deploy
-- Privacy nutrition label updates (data linked to user, shared with household members)
+- Create household = create `CKShare(recordZoneID:)` for the zone; invite with `UICloudSharingController`.
+- Accept invite (`CKShare.Metadata`); prompt before replacing the member's local library (offer backup first); start the shared-DB engine.
+- Leave (member), stop sharing / delete household (owner).
+- Owner-only language change with a household-wide warning; members see it read-only.
+- Settings → **Household** section: members, invite, leave/delete.
+- **Done when:** two different Apple IDs see each other's changes.
 
-### Phase 4 — Deferred
+### Phase 3 — Photos and polish → App Store
 
-- Activity feed ("Ian checked off Milk")
-- Custom backend for Android/web
-- Per-member read-only roles
-
----
-
-## Key code changes
-
-| File / area | Change |
-|-------------|--------|
-| `GroceryStore.swift` | Facade over cache + sync; `resetHouseholdLibraryToSeed(newLanguage:)` for household-wide language reset; keep `resetLibraryToInitialSeed()` for local-only |
-| **New** `LocalDataStore` (SwiftData) | Persistent cache, migration from UserDefaults |
-| **New** `CloudKitSyncService` | Record mapping, fetch/changedTokens, push handling, retry |
-| **New** `HouseholdRepository` | CKShare lifecycle, membership |
-| **New** `SyncMetadata` on models | `modifiedAt`, `modifiedBy`, `isDeleted`, `householdID` (no per-record language) |
-| `ItemImageStore.swift` | Local file cache + CKAsset coordinator |
-| `ShoplisterApp.swift` | iCloud account observer, sync bootstrap, share accept |
-| `SettingsView.swift` | Household section, iCloud status; household-aware language picker with whole-household reset |
-| `ShareExtensionAppGroupSupport.swift` | Household-aware snapshot with stable IDs |
-| `Shoplister.entitlements` | CloudKit + Push Notifications |
-| `LibraryBackupCodec.swift` | Keep as manual export escape hatch; import preserves item UUIDs (v4 `item_id` column) |
+- Item photos as CKAssets (compressed), downloaded lazily.
+- Share extension / Shortcuts ops flow through sync.
+- Offline messaging ("changes will sync when you're online").
+- Deploy CloudKit schema Development → Production.
+- Update App Privacy answers (data now stored in the user's iCloud and shared with household members) and `privacy.html`.
 
 ---
 
-## Entitlements and Apple setup
+## Testing setup
 
-Main app (extension stays App Group only for v1; host syncs snapshot):
+- Paid Apple Developer Program membership (CloudKit isn't available to free personal teams).
+- **Phase 1:** two devices on the same Apple ID (or a device + Simulator signed into iCloud).
+- **Phase 2:** a second Apple ID (a regular one — App Store sandbox testers are for purchases, not iCloud). Cheapest: two Simulators on one Mac, each signed into a different Apple ID; confirm on real devices.
+- Xcode debug builds use the CloudKit **Development** environment; TestFlight/App Store use **Production**.
+- CloudKit Console (icloud.developer.apple.com): inspect records/zones, logs, reset Development data.
+- Final check: TestFlight build used by a real household on a real shopping trip.
 
-```
-com.apple.developer.icloud-services → CloudKit
-com.apple.developer.icloud-container-identifiers → iCloud.com.ianengelman.shoplister
-aps-environment → development/production
-```
-
-CloudKit Dashboard: create record types, indexes on `householdID`, deploy Development → Production before App Store release.
-
-No Sign in with Apple required (iCloud account suffices).
+**Scenario checklist (each phase):** simultaneous edits on two devices · offline edits then reconnect · app killed mid-sync · delete on one device while the other checks it off · iCloud signed out · member leaves · owner deletes household · owner changes language.
 
 ---
 
-## Risks and mitigations
+## Risks
 
 | Risk | Mitigation |
-|------|------------|
-| Data loss on migration | Export prompt + dual-write UserDefaults during Phase 1 beta |
-| `GroceryStore` is 1400+ lines touching every feature | Phase 1 extracts repository first; keep public API stable |
-| Shopping list conflicts in real households | Field-level LWW + merge duplicate lines; log anomalies |
-| CKAsset quotas / image bandwidth | Compress JPEGs, optional thumbnail record, lazy download |
-| Share extension cannot sync CK | Host maintains App Group snapshot; extension enqueues only |
-| Household language change by one member | Destructive for all — strong confirmation UI; sync reset atomically via Household record + bulk tombstone/reseed |
-| Accidental household-wide reset | Same mitigation as today's language alert; consider owner-only language change if user feedback demands it (not v1 default) |
-
-**Effort:** Large feature — Phase 1 alone is multi-week; full shared household (Phases 1–3) is multi-month.
+|---|---|
+| Data loss during storage migration | Phase 0 ships alone; dual-write fallback; corrupt files moved aside, never overwritten |
+| iOS 26 CloudKit sharing regressions | Zone-wide sharing; budget real-device testing with two Apple IDs |
+| Destructive household language reset | Owner-only, strong confirmation, offer backup first |
+| `GroceryStore` size / EN–HE duplication | Phase 0b collapses it before sync code is added |
+| Photo bandwidth / storage | Compress, lazy download, final phase only |
 
 ---
 
-## Recommended starting point
+## Checklist
 
-Begin with **Phase 1** only: CloudKit private-DB sync of the user's **active** `V3Bundle` for a single iCloud user across their own devices. That validates the hardest engineering (leaving UserDefaults, sync engine, image assets) before CKShare membership complexity.
-
-Update `docs/MultiUserSharingPlan.md` bilingual section to match single-language household model when implementation starts.
-
----
-
-## Implementation checklist
-
-- [ ] Confirm household bilingual model (single `libraryLanguage` per household)
-- [ ] Phase 1: CloudKit container, local cache, migrate V3Bundle off UserDefaults, single-user multi-device sync
-- [ ] Add CKAsset pipeline for ItemImageStore with local cache
-- [ ] Extract sync engine from GroceryStore; define conflict rules and mutation queue
-- [ ] Phase 2: Household model, CKShare invites, membership UI in Settings
-- [ ] Phase 2: Household-wide library language change with destructive reset synced to all members
-- [ ] Update share extension App Group snapshot to household-aware stable IDs
-- [ ] Build first-run migration: create household from local data vs join existing
+- [ ] Phase 0a: library JSON files + migration + dual-write
+- [ ] Phase 0b: single mutation path in `GroceryStore`
+- [ ] Phase 0: test pass, ship 1.2
+- [ ] Apple setup: CloudKit container `iCloud.com.byteloft.apps.shoplister`, push, background modes
+- [ ] Phase 1: CKSyncEngine (private DB), record mapping, conflict rules, Settings sync status
+- [ ] Phase 2: zone share, invite/accept/leave/delete, owner-only language, Household settings
+- [ ] Phase 3: photo sync, extension through sync, schema to Production, privacy updates
