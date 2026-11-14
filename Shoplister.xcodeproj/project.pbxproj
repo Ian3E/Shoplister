@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		83840ABB2FE5D790001D1EBA /* LocalizedCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000005B /* LocalizedCopy.swift */; };
+		8386E9FB30A614F00007541A /* ShoplisterIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8386E9FA30A614F00007541A /* ShoplisterIcon.icon */; };
 		AA0000010000000000000001 /* ShoplisterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000001 /* ShoplisterApp.swift */; };
 		AA0000020000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000002 /* ContentView.swift */; };
 		AA0000030000000000000003 /* GroceryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000003 /* GroceryStore.swift */; };
@@ -126,6 +127,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		8386E9FA30A614F00007541A /* ShoplisterIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = ShoplisterIcon.icon; sourceTree = "<group>"; };
 		AA0001010000000000000001 /* ShoplisterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoplisterApp.swift; sourceTree = "<group>"; };
 		AA0001010000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AA0001010000000000000003 /* GroceryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroceryStore.swift; sourceTree = "<group>"; };
@@ -258,6 +260,7 @@
 				AA0002010000000000000007 /* Shoplister.entitlements */,
 				AA0006610000000000000000 /* en.lproj */,
 				AA0006620000000000000000 /* he.lproj */,
+				8386E9FA30A614F00007541A /* ShoplisterIcon.icon */,
 			);
 			path = Shoplister;
 			sourceTree = "<group>";
@@ -549,6 +552,7 @@
 			files = (
 				AA00000F000000000000000F /* Assets.xcassets in Resources */,
 				AA00003A000000000000003A /* LaunchScreen.storyboard in Resources */,
+				8386E9FB30A614F00007541A /* ShoplisterIcon.icon in Resources */,
 				AA0000210000000000000021 /* seed-library-backup-en.txt in Resources */,
 				AA0000220000000000000022 /* seed-library-backup-he.txt in Resources */,
 				AA00005C000000000000005C /* Localizable.xcstrings in Resources */,
@@ -835,7 +839,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = ShoplisterIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = Shoplister/Shoplister.entitlements;
 				COPY_PHASE_STRIP = NO;
@@ -869,7 +873,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = ShoplisterIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = Shoplister/Shoplister.entitlements;
 				CURRENT_PROJECT_VERSION = 2;
