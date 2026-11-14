@@ -1,7 +1,7 @@
 # Household sync plan (CloudKit)
 
 > **Scope:** Sync the item library, shopping list, sections, and saved lists across a user's own devices, then share them with a household.
-> **Status:** Planning. Updated November 2026 — replaces the June 2026 plan and `MultiUserSharingPlan.md`. Nothing is implemented yet.
+> **Status:** Phase 0 implemented and tested (November 2026), shipping as 1.2. Phases 1–3 not started. Replaces the June 2026 plan and `MultiUserSharingPlan.md`.
 > **Priorities:** simplicity and reliability over features.
 
 ---
@@ -159,9 +159,11 @@ Goal: get off UserDefaults and give sync a single mutation path, with **no visib
 
 ## Checklist
 
-- [ ] Phase 0a: library JSON files + migration + dual-write
-- [ ] Phase 0b: single mutation path in `GroceryStore`
-- [ ] Phase 0: test pass, ship 1.2
+- [x] Phase 0a: library JSON files + migration + dual-write
+- [x] Phase 0b: single mutation path in `GroceryStore`
+- [x] Phase 0: test pass
+- [ ] Phase 0: ship 1.2
+- [ ] 1.3: remove the UserDefaults dual-write and the "prefer a differing UserDefaults copy" check in `GroceryStore.loadBundle`
 - [ ] Apple setup: CloudKit container `iCloud.com.byteloft.apps.shoplister`, push, background modes
 - [ ] Phase 1: CKSyncEngine (private DB), record mapping, conflict rules, Settings sync status
 - [ ] Phase 2: zone share, invite/accept/leave/delete, owner-only language, Household settings
