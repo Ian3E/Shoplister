@@ -114,14 +114,11 @@ final class GroceryStore: ObservableObject {
             sortOrder: nextOrder,
             hasImage: hasImage
         )
-        if currentContentLanguage() == .hebrew {
-            hebrew.catalog.append(newItem)
-        } else {
-            english.catalog.append(newItem)
+        mutateActive { bundle in
+            bundle.catalog.append(newItem)
         }
         sortCatalog(for: currentContentLanguage())
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func updateCatalogItem(_ item: GroceryItem) {
@@ -133,55 +130,42 @@ final class GroceryStore: ObservableObject {
         if previous.hasImage, !updated.hasImage {
             ItemImageStore.delete(forItemID: item.id)
         }
-        if previous.inventoryTagID != updated.inventoryTagID {
-            // Moving between inventory groups: re-compact the old group and append to the end of the new group.
-            let oldGroup = previous.inventoryTagID
-            let newGroup = updated.inventoryTagID
-            updated.sortOrder = nextSortOrderForNewItem(inventoryTagID: newGroup)
-            compactCatalogSortOrders(inInventoryTagID: oldGroup, language: currentContentLanguage())
+        let movesGroup = previous.inventoryTagID != updated.inventoryTagID
+        if movesGroup {
+            // Moving between inventory groups: append to the end of the new group.
+            updated.sortOrder = nextSortOrderForNewItem(inventoryTagID: updated.inventoryTagID)
         }
-        if currentContentLanguage() == .hebrew {
-            hebrew.catalog[idx] = updated
-        } else {
-            english.catalog[idx] = updated
+        mutateActive { bundle in
+            if movesGroup {
+                // Re-compact the old group (same order as before: before the item leaves it).
+                compactCatalogSortOrders(inInventoryTagID: previous.inventoryTagID, bundle: &bundle)
+            }
+            bundle.catalog[idx] = updated
+            compactCatalogSortOrders(inInventoryTagID: updated.inventoryTagID, bundle: &bundle)
         }
-        compactCatalogSortOrders(inInventoryTagID: updated.inventoryTagID, language: currentContentLanguage())
         sortCatalog(for: currentContentLanguage())
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     // Archive/restore removed: this app no longer uses an archive state for inventory items.
 
     func deleteCatalogItem(_ id: UUID) {
-        var removedShoppingLine = false
-        let removedInventoryTagID = (currentContentLanguage() == .hebrew
-            ? hebrew.catalog.first(where: { $0.id == id })?.inventoryTagID
-            : english.catalog.first(where: { $0.id == id })?.inventoryTagID
-        )
-        if currentContentLanguage() == .hebrew {
-            removedShoppingLine = hebrew.shopping.contains { $0.itemID == id }
-            hebrew.catalog.removeAll { $0.id == id }
-            hebrew.shopping.removeAll { $0.itemID == id }
-        } else {
-            removedShoppingLine = english.shopping.contains { $0.itemID == id }
-            english.catalog.removeAll { $0.id == id }
-            english.shopping.removeAll { $0.itemID == id }
+        let removedShoppingLine = mutateActiveReturning { (bundle: inout V3Bundle) -> Bool in
+            let removedInventoryTagID = bundle.catalog.first(where: { $0.id == id })?.inventoryTagID
+            let hadShoppingLine = bundle.shopping.contains { $0.itemID == id }
+            bundle.catalog.removeAll { $0.id == id }
+            bundle.shopping.removeAll { $0.itemID == id }
+            pruneRecipeLinesInBundle(referencingItemID: id, bundle: &bundle)
+            if let removedInventoryTagID {
+                compactCatalogSortOrders(inInventoryTagID: removedInventoryTagID, bundle: &bundle)
+            }
+            return hadShoppingLine
         }
         ItemImageStore.delete(forItemID: id)
-        if currentContentLanguage() == .hebrew {
-            pruneRecipeLinesInBundle(referencingItemID: id, bundle: &hebrew)
-        } else {
-            pruneRecipeLinesInBundle(referencingItemID: id, bundle: &english)
-        }
-        if let removedInventoryTagID {
-            compactCatalogSortOrders(inInventoryTagID: removedInventoryTagID, language: currentContentLanguage())
-        }
         if removedShoppingLine {
             ShoppingListHaptics.playLight()
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     // MARK: - Tags
@@ -208,164 +192,103 @@ final class GroceryStore: ObservableObject {
         guard !trimmed.isEmpty else { return nil }
         guard !Tag.isUnsortedCanonicalTitle(trimmed) else { return nil }
 
-        let tag: Tag
-        if currentContentLanguage() == .hebrew {
+        let tag = mutateActiveReturning { (bundle: inout V3Bundle) -> Tag in
             switch kind {
             case .inventory:
-                let next = (hebrew.inventoryTags.map(\.sortOrder).max() ?? -1) + 1
-                tag = Tag(kind: .inventory, title: trimmed, sortOrder: next)
-                hebrew.inventoryTags.append(tag)
+                let next = (bundle.inventoryTags.map(\.sortOrder).max() ?? -1) + 1
+                let newTag = Tag(kind: .inventory, title: trimmed, sortOrder: next)
+                bundle.inventoryTags.append(newTag)
+                return newTag
             case .shopping:
-                let next = (hebrew.shoppingTags.map(\.sortOrder).max() ?? -1) + 1
-                tag = Tag(kind: .shopping, title: trimmed, sortOrder: next)
-                hebrew.shoppingTags.append(tag)
-            }
-        } else {
-            switch kind {
-            case .inventory:
-                let next = (english.inventoryTags.map(\.sortOrder).max() ?? -1) + 1
-                tag = Tag(kind: .inventory, title: trimmed, sortOrder: next)
-                english.inventoryTags.append(tag)
-            case .shopping:
-                let next = (english.shoppingTags.map(\.sortOrder).max() ?? -1) + 1
-                tag = Tag(kind: .shopping, title: trimmed, sortOrder: next)
-                english.shoppingTags.append(tag)
+                let next = (bundle.shoppingTags.map(\.sortOrder).max() ?? -1) + 1
+                let newTag = Tag(kind: .shopping, title: trimmed, sortOrder: next)
+                bundle.shoppingTags.append(newTag)
+                return newTag
             }
         }
         sortActiveTagsInPlace()
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
         return tag.id
     }
 
     func moveUserInventoryTags(fromOffsets source: IndexSet, toOffset destination: Int) {
-        if currentContentLanguage() == .hebrew {
-            var user = hebrew.inventoryTags.filter { !Tag.isUnsortedBucket($0) }
-            let unsorted = hebrew.inventoryTags.filter { Tag.isUnsortedBucket($0) }
+        mutateActive { bundle in
+            var user = bundle.inventoryTags.filter { !Tag.isUnsortedBucket($0) }
+            let unsorted = bundle.inventoryTags.filter { Tag.isUnsortedBucket($0) }
             user.move(fromOffsets: source, toOffset: destination)
-            hebrew.inventoryTags = user + unsorted
-            compactSortOrders(&hebrew.inventoryTags)
-        } else {
-            var user = english.inventoryTags.filter { !Tag.isUnsortedBucket($0) }
-            let unsorted = english.inventoryTags.filter { Tag.isUnsortedBucket($0) }
-            user.move(fromOffsets: source, toOffset: destination)
-            english.inventoryTags = user + unsorted
-            compactSortOrders(&english.inventoryTags)
+            bundle.inventoryTags = user + unsorted
+            compactSortOrders(&bundle.inventoryTags)
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func moveUserShoppingTags(fromOffsets source: IndexSet, toOffset destination: Int) {
-        if currentContentLanguage() == .hebrew {
-            var user = hebrew.shoppingTags.filter { !Tag.isUnsortedBucket($0) }
-            let unsorted = hebrew.shoppingTags.filter { Tag.isUnsortedBucket($0) }
+        mutateActive { bundle in
+            var user = bundle.shoppingTags.filter { !Tag.isUnsortedBucket($0) }
+            let unsorted = bundle.shoppingTags.filter { Tag.isUnsortedBucket($0) }
             user.move(fromOffsets: source, toOffset: destination)
-            hebrew.shoppingTags = user + unsorted
-            compactSortOrders(&hebrew.shoppingTags)
-        } else {
-            var user = english.shoppingTags.filter { !Tag.isUnsortedBucket($0) }
-            let unsorted = english.shoppingTags.filter { Tag.isUnsortedBucket($0) }
-            user.move(fromOffsets: source, toOffset: destination)
-            english.shoppingTags = user + unsorted
-            compactSortOrders(&english.shoppingTags)
+            bundle.shoppingTags = user + unsorted
+            compactSortOrders(&bundle.shoppingTags)
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func renameTag(kind: Tag.Kind, tagID: UUID, newTitle: String) {
         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         guard !Tag.isUnsortedCanonicalTitle(trimmed) else { return }
-        if currentContentLanguage() == .hebrew {
+        let renamed = mutateActiveReturning { (bundle: inout V3Bundle) -> Bool in
             switch kind {
             case .inventory:
-                guard let idx = hebrew.inventoryTags.firstIndex(where: { $0.id == tagID }) else { return }
-                guard !Tag.isUnsortedBucket(hebrew.inventoryTags[idx]) else { return }
-                hebrew.inventoryTags[idx].title = trimmed
+                guard let idx = bundle.inventoryTags.firstIndex(where: { $0.id == tagID }) else { return false }
+                guard !Tag.isUnsortedBucket(bundle.inventoryTags[idx]) else { return false }
+                bundle.inventoryTags[idx].title = trimmed
             case .shopping:
-                guard let idx = hebrew.shoppingTags.firstIndex(where: { $0.id == tagID }) else { return }
-                guard !Tag.isUnsortedBucket(hebrew.shoppingTags[idx]) else { return }
-                hebrew.shoppingTags[idx].title = trimmed
+                guard let idx = bundle.shoppingTags.firstIndex(where: { $0.id == tagID }) else { return false }
+                guard !Tag.isUnsortedBucket(bundle.shoppingTags[idx]) else { return false }
+                bundle.shoppingTags[idx].title = trimmed
             }
-        } else {
-            switch kind {
-            case .inventory:
-                guard let idx = english.inventoryTags.firstIndex(where: { $0.id == tagID }) else { return }
-                guard !Tag.isUnsortedBucket(english.inventoryTags[idx]) else { return }
-                english.inventoryTags[idx].title = trimmed
-            case .shopping:
-                guard let idx = english.shoppingTags.firstIndex(where: { $0.id == tagID }) else { return }
-                guard !Tag.isUnsortedBucket(english.shoppingTags[idx]) else { return }
-                english.shoppingTags[idx].title = trimmed
-            }
+            return true
         }
+        guard renamed else { return }
         sortActiveTagsInPlace()
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func deleteTag(kind: Tag.Kind, tagID: UUID) {
-        if currentContentLanguage() == .hebrew {
+        let deleted = mutateActiveReturning { (bundle: inout V3Bundle) -> Bool in
             switch kind {
             case .inventory:
-                guard let victim = hebrew.inventoryTags.first(where: { $0.id == tagID }) else { return }
-                guard !Tag.isUnsortedBucket(victim) else { return }
-                guard hebrew.inventoryTags.count > 1 else { return }
-                guard let fallback = hebrewUnsortedInventoryID else { return }
-                hebrew.inventoryTags.removeAll { $0.id == tagID }
-                compactSortOrders(&hebrew.inventoryTags)
-                for i in hebrew.catalog.indices
-                    where hebrew.catalog[i].inventoryTagID == tagID
+                guard let victim = bundle.inventoryTags.first(where: { $0.id == tagID }) else { return false }
+                guard !Tag.isUnsortedBucket(victim) else { return false }
+                guard bundle.inventoryTags.count > 1 else { return false }
+                guard let fallback = bundle.inventoryTags.first(where: { Tag.isUnsortedBucket($0) })?.id else { return false }
+                bundle.inventoryTags.removeAll { $0.id == tagID }
+                compactSortOrders(&bundle.inventoryTags)
+                for i in bundle.catalog.indices
+                    where bundle.catalog[i].inventoryTagID == tagID
                 {
-                    hebrew.catalog[i].inventoryTagID = fallback
+                    bundle.catalog[i].inventoryTagID = fallback
                 }
             case .shopping:
-                guard let victim = hebrew.shoppingTags.first(where: { $0.id == tagID }) else { return }
-                guard !Tag.isUnsortedBucket(victim) else { return }
-                guard hebrew.shoppingTags.count > 1 else { return }
-                guard let fallback = hebrewUnsortedShoppingID else { return }
-                hebrew.shoppingTags.removeAll { $0.id == tagID }
-                compactSortOrders(&hebrew.shoppingTags)
-                for i in hebrew.catalog.indices
-                    where hebrew.catalog[i].shoppingTagID == tagID
+                guard let victim = bundle.shoppingTags.first(where: { $0.id == tagID }) else { return false }
+                guard !Tag.isUnsortedBucket(victim) else { return false }
+                guard bundle.shoppingTags.count > 1 else { return false }
+                guard let fallback = bundle.shoppingTags.first(where: { Tag.isUnsortedBucket($0) })?.id else { return false }
+                bundle.shoppingTags.removeAll { $0.id == tagID }
+                compactSortOrders(&bundle.shoppingTags)
+                for i in bundle.catalog.indices
+                    where bundle.catalog[i].shoppingTagID == tagID
                 {
-                    hebrew.catalog[i].shoppingTagID = fallback
+                    bundle.catalog[i].shoppingTagID = fallback
                 }
             }
-        } else {
-            switch kind {
-            case .inventory:
-                guard let victim = english.inventoryTags.first(where: { $0.id == tagID }) else { return }
-                guard !Tag.isUnsortedBucket(victim) else { return }
-                guard english.inventoryTags.count > 1 else { return }
-                guard let fallback = englishUnsortedInventoryID else { return }
-                english.inventoryTags.removeAll { $0.id == tagID }
-                compactSortOrders(&english.inventoryTags)
-                for i in english.catalog.indices
-                    where english.catalog[i].inventoryTagID == tagID
-                {
-                    english.catalog[i].inventoryTagID = fallback
-                }
-            case .shopping:
-                guard let victim = english.shoppingTags.first(where: { $0.id == tagID }) else { return }
-                guard !Tag.isUnsortedBucket(victim) else { return }
-                guard english.shoppingTags.count > 1 else { return }
-                guard let fallback = englishUnsortedShoppingID else { return }
-                english.shoppingTags.removeAll { $0.id == tagID }
-                compactSortOrders(&english.shoppingTags)
-                for i in english.catalog.indices
-                    where english.catalog[i].shoppingTagID == tagID
-                {
-                    english.catalog[i].shoppingTagID = fallback
-                }
-            }
+            return true
         }
+        guard deleted else { return }
         sortActiveTagsInPlace()
         sortCatalog(for: currentContentLanguage())
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     private var englishUnsortedInventoryID: UUID? {
@@ -389,72 +312,52 @@ final class GroceryStore: ObservableObject {
     func addToShopping(itemID: UUID, quantity: Int, playHaptic: Bool = true) {
         invalidateShoppingListUndo()
         let qty = max(1, quantity)
-        if currentContentLanguage() == .hebrew {
-            if let idx = hebrew.shopping.firstIndexForQuantityUpdate(itemID: itemID) {
-                hebrew.shopping[idx].quantity += qty
+        mutateActive { bundle in
+            if let idx = bundle.shopping.firstIndexForQuantityUpdate(itemID: itemID) {
+                bundle.shopping[idx].quantity += qty
             } else {
-                hebrew.shopping.append(.init(itemID: itemID, quantity: qty))
-            }
-        } else {
-            if let idx = english.shopping.firstIndexForQuantityUpdate(itemID: itemID) {
-                english.shopping[idx].quantity += qty
-            } else {
-                english.shopping.append(.init(itemID: itemID, quantity: qty))
+                bundle.shopping.append(.init(itemID: itemID, quantity: qty))
             }
         }
         sortShoppingInPlace()
         if playHaptic {
             ShoppingListHaptics.playLight()
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func incrementUncheckedShoppingQuantity(itemID: UUID, delta: Int = 1, playHaptic: Bool = true) {
         invalidateShoppingListUndo()
         let d = max(1, delta)
-        if currentContentLanguage() == .hebrew {
-            if let idx = hebrew.shopping.firstIndexForQuantityUpdate(itemID: itemID) {
-                hebrew.shopping[idx].quantity += d
+        mutateActive { bundle in
+            if let idx = bundle.shopping.firstIndexForQuantityUpdate(itemID: itemID) {
+                bundle.shopping[idx].quantity += d
             } else {
-                hebrew.shopping.append(.init(itemID: itemID, quantity: d))
-            }
-        } else {
-            if let idx = english.shopping.firstIndexForQuantityUpdate(itemID: itemID) {
-                english.shopping[idx].quantity += d
-            } else {
-                english.shopping.append(.init(itemID: itemID, quantity: d))
+                bundle.shopping.append(.init(itemID: itemID, quantity: d))
             }
         }
         sortShoppingInPlace()
         if playHaptic {
             ShoppingListHaptics.playLight()
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func adjustUncheckedShoppingQuantity(itemID: UUID, delta: Int, playHaptic: Bool = true) {
         guard delta != 0 else { return }
         invalidateShoppingListUndo()
-        if currentContentLanguage() == .hebrew,
-           let idx = hebrew.shopping.firstIndexForQuantityUpdate(itemID: itemID)
-        {
-            let newQuantity = hebrew.shopping[idx].quantity + delta
-            guard newQuantity >= 1 else { return }
-            hebrew.shopping[idx].quantity = newQuantity
-        } else if let idx = english.shopping.firstIndexForQuantityUpdate(itemID: itemID) {
-            let newQuantity = english.shopping[idx].quantity + delta
-            guard newQuantity >= 1 else { return }
-            english.shopping[idx].quantity = newQuantity
-        } else {
-            return
+        let adjusted = mutateActiveReturning { (bundle: inout V3Bundle) -> Bool in
+            guard let idx = bundle.shopping.firstIndexForQuantityUpdate(itemID: itemID) else { return false }
+            let newQuantity = bundle.shopping[idx].quantity + delta
+            guard newQuantity >= 1 else { return false }
+            bundle.shopping[idx].quantity = newQuantity
+            return true
         }
+        guard adjusted else { return }
         if playHaptic {
             ShoppingListHaptics.playLight()
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func shoppingListQuantity(for itemID: UUID) -> Int {
@@ -466,140 +369,111 @@ final class GroceryStore: ObservableObject {
 
     func toggleChecked(entryID: UUID) {
         invalidateShoppingListUndo()
-        if currentContentLanguage() == .hebrew,
-           let idx = hebrew.shopping.firstIndex(where: { $0.id == entryID })
-        {
-            hebrew.shopping[idx].isChecked.toggle()
-            ShoppingListHaptics.playLight()
-        } else if let idx = english.shopping.firstIndex(where: { $0.id == entryID }) {
-            english.shopping[idx].isChecked.toggle()
+        let toggled = mutateActiveReturning { (bundle: inout V3Bundle) -> Bool in
+            guard let idx = bundle.shopping.firstIndex(where: { $0.id == entryID }) else { return false }
+            bundle.shopping[idx].isChecked.toggle()
+            return true
+        }
+        if toggled {
             ShoppingListHaptics.playLight()
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func setQuantity(entryID: UUID, quantity: Int) {
         invalidateShoppingListUndo()
-        if currentContentLanguage() == .hebrew,
-           let idx = hebrew.shopping.firstIndex(where: { $0.id == entryID })
-        {
-            hebrew.shopping[idx].quantity = max(1, quantity)
-        } else if let idx = english.shopping.firstIndex(where: { $0.id == entryID }) {
-            english.shopping[idx].quantity = max(1, quantity)
+        mutateActive { bundle in
+            if let idx = bundle.shopping.firstIndex(where: { $0.id == entryID }) {
+                bundle.shopping[idx].quantity = max(1, quantity)
+            }
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func adjustShoppingEntryQuantity(entryID: UUID, delta: Int, playHaptic: Bool = true) {
         guard delta != 0 else { return }
         invalidateShoppingListUndo()
-        if currentContentLanguage() == .hebrew,
-           let idx = hebrew.shopping.firstIndex(where: { $0.id == entryID })
-        {
-            let newQuantity = hebrew.shopping[idx].quantity + delta
-            guard newQuantity >= 1 else { return }
-            hebrew.shopping[idx].quantity = newQuantity
-        } else if let idx = english.shopping.firstIndex(where: { $0.id == entryID }) {
-            let newQuantity = english.shopping[idx].quantity + delta
-            guard newQuantity >= 1 else { return }
-            english.shopping[idx].quantity = newQuantity
-        } else {
-            return
+        let adjusted = mutateActiveReturning { (bundle: inout V3Bundle) -> Bool in
+            guard let idx = bundle.shopping.firstIndex(where: { $0.id == entryID }) else { return false }
+            let newQuantity = bundle.shopping[idx].quantity + delta
+            guard newQuantity >= 1 else { return false }
+            bundle.shopping[idx].quantity = newQuantity
+            return true
         }
+        guard adjusted else { return }
         if playHaptic {
             ShoppingListHaptics.playLight()
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func removeEntry(entryID: UUID) {
         invalidateShoppingListUndo()
-        if currentContentLanguage() == .hebrew {
-            if hebrew.shopping.contains(where: { $0.id == entryID }) {
-                hebrew.shopping.removeAll { $0.id == entryID }
-                ShoppingListHaptics.playLight()
-            }
-        } else if english.shopping.contains(where: { $0.id == entryID }) {
-            english.shopping.removeAll { $0.id == entryID }
+        let removed = mutateActiveReturning { (bundle: inout V3Bundle) -> Bool in
+            guard bundle.shopping.contains(where: { $0.id == entryID }) else { return false }
+            bundle.shopping.removeAll { $0.id == entryID }
+            return true
+        }
+        if removed {
             ShoppingListHaptics.playLight()
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func removeFromShopping(itemID: UUID) {
         invalidateShoppingListUndo()
-        if currentContentLanguage() == .hebrew {
-            if hebrew.shopping.contains(where: { $0.itemID == itemID }) {
-                hebrew.shopping.removeAll { $0.itemID == itemID }
-                ShoppingListHaptics.playLight()
-            }
-        } else if english.shopping.contains(where: { $0.itemID == itemID }) {
-            english.shopping.removeAll { $0.itemID == itemID }
+        let removed = mutateActiveReturning { (bundle: inout V3Bundle) -> Bool in
+            guard bundle.shopping.contains(where: { $0.itemID == itemID }) else { return false }
+            bundle.shopping.removeAll { $0.itemID == itemID }
+            return true
+        }
+        if removed {
             ShoppingListHaptics.playLight()
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func clearChecked() {
         let checkedSnapshot = activeShopping.filter(\.isChecked)
         guard !checkedSnapshot.isEmpty else { return }
         captureUndoClearChecked(checkedSnapshot)
-        if currentContentLanguage() == .hebrew {
-            hebrew.shopping.removeAll { $0.isChecked }
-            ShoppingListHaptics.playLight()
-        } else {
-            english.shopping.removeAll { $0.isChecked }
-            ShoppingListHaptics.playLight()
+        mutateActive { bundle in
+            bundle.shopping.removeAll { $0.isChecked }
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        ShoppingListHaptics.playLight()
+        saveAndPublish()
     }
 
     func clearShoppingList() {
         guard !activeShopping.isEmpty else { return }
         captureUndoClearList(activeShopping)
-        if currentContentLanguage() == .hebrew {
-            hebrew.shopping.removeAll()
-            ShoppingListHaptics.playLight()
-        } else {
-            english.shopping.removeAll()
-            ShoppingListHaptics.playLight()
+        mutateActive { bundle in
+            bundle.shopping.removeAll()
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        ShoppingListHaptics.playLight()
+        saveAndPublish()
     }
 
     func undoClearShoppingList() {
         guard let snapshot = undoClearListSnapshot else { return }
         invalidateShoppingListUndo()
-        if currentContentLanguage() == .hebrew {
-            hebrew.shopping = snapshot
-        } else {
-            english.shopping = snapshot
+        mutateActive { bundle in
+            bundle.shopping = snapshot
         }
         sortShoppingInPlace()
         ShoppingListHaptics.playLight()
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func undoClearChecked() {
         guard let snapshot = undoClearCheckedSnapshot else { return }
         invalidateShoppingListUndo()
-        if currentContentLanguage() == .hebrew {
-            hebrew.shopping.append(contentsOf: snapshot)
-        } else {
-            english.shopping.append(contentsOf: snapshot)
+        mutateActive { bundle in
+            bundle.shopping.append(contentsOf: snapshot)
         }
         sortShoppingInPlace()
         ShoppingListHaptics.playLight()
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     private func captureUndoClearList(_ snapshot: [ShoppingEntry]) {
@@ -698,14 +572,11 @@ final class GroceryStore: ObservableObject {
         guard !trimmed.isEmpty, !lines.isEmpty else { return nil }
         let nextOrder = (activeRecipes.map(\.sortOrder).max() ?? -1) + 1
         let recipe = Recipe(id: UUID(), name: trimmed, sortOrder: nextOrder, lines: lines)
-        if currentContentLanguage() == .hebrew {
-            hebrew.recipes.append(recipe)
-        } else {
-            english.recipes.append(recipe)
+        mutateActive { bundle in
+            bundle.recipes.append(recipe)
         }
         sortRecipesInActiveBundle()
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
         ShoppingListHaptics.playLight()
         return recipe.id
     }
@@ -720,36 +591,26 @@ final class GroceryStore: ObservableObject {
             return next
         }
         guard let idx = activeRecipeIndex(of: updated.id) else { return }
-        if currentContentLanguage() == .hebrew {
-            hebrew.recipes[idx] = updated
-        } else {
-            english.recipes[idx] = updated
+        mutateActive { bundle in
+            bundle.recipes[idx] = updated
         }
         sortRecipesInActiveBundle()
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func deleteRecipe(id: UUID) {
-        if currentContentLanguage() == .hebrew {
-            hebrew.recipes.removeAll { $0.id == id }
-        } else {
-            english.recipes.removeAll { $0.id == id }
+        mutateActive { bundle in
+            bundle.recipes.removeAll { $0.id == id }
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func moveRecipes(fromOffsets source: IndexSet, toOffset destination: Int) {
-        if currentContentLanguage() == .hebrew {
-            hebrew.recipes.move(fromOffsets: source, toOffset: destination)
-            compactRecipeSortOrders(in: &hebrew.recipes)
-        } else {
-            english.recipes.move(fromOffsets: source, toOffset: destination)
-            compactRecipeSortOrders(in: &english.recipes)
+        mutateActive { bundle in
+            bundle.recipes.move(fromOffsets: source, toOffset: destination)
+            compactRecipeSortOrders(in: &bundle.recipes)
         }
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     func addRecipeToShopping(recipeID: UUID, lineIDs: Set<UUID>, playHaptic: Bool = true) {
@@ -777,14 +638,12 @@ final class GroceryStore: ObservableObject {
     }
 
     private var activeRecipes: [Recipe] {
-        currentContentLanguage() == .hebrew ? hebrew.recipes : english.recipes
+        activeBundle.recipes
     }
 
     private func sortRecipesInActiveBundle() {
-        if currentContentLanguage() == .hebrew {
-            hebrew.recipes.sort(by: recipeSortPredicate)
-        } else {
-            english.recipes.sort(by: recipeSortPredicate)
+        mutateActive { bundle in
+            bundle.recipes.sort(by: recipeSortPredicate)
         }
     }
 
@@ -806,34 +665,57 @@ final class GroceryStore: ObservableObject {
         return AppContentLanguage(rawValue: raw ?? "") ?? .english
     }
 
+    /// The active language's library (read-only copy). To change it, use `mutateActive`.
+    private var activeBundle: V3Bundle {
+        currentContentLanguage() == .hebrew ? hebrew : english
+    }
+
+    /// Edits the active language's library in place — the one path every user action goes through
+    /// (Phase 0b; sync will hook in here). `body` must only use the `bundle` it's given: reading
+    /// `english` / `hebrew` / `activeBundle` (or anything built on them) inside it is an overlapping
+    /// access Swift traps on at runtime.
+    private func mutateActive(_ body: (inout V3Bundle) -> Void) {
+        if currentContentLanguage() == .hebrew {
+            body(&hebrew)
+        } else {
+            body(&english)
+        }
+    }
+
+    /// `mutateActive` that returns a value (e.g. whether anything changed).
+    private func mutateActiveReturning<T>(_ body: (inout V3Bundle) -> T) -> T {
+        if currentContentLanguage() == .hebrew {
+            return body(&hebrew)
+        } else {
+            return body(&english)
+        }
+    }
+
+    /// Saves both libraries and republishes the active one to the UI.
+    private func saveAndPublish() {
+        saveAllToDisk()
+        syncPublishedFromActiveContentLanguage()
+    }
+
     private var activeCatalog: [GroceryItem] {
-        currentContentLanguage() == .hebrew ? hebrew.catalog : english.catalog
+        activeBundle.catalog
     }
 
     private var activeShopping: [ShoppingEntry] {
-        currentContentLanguage() == .hebrew ? hebrew.shopping : english.shopping
+        activeBundle.shopping
     }
 
     private func activeCatalogIndex(of id: UUID) -> Int? {
-        (currentContentLanguage() == .hebrew ? hebrew.catalog : english.catalog).firstIndex {
-            $0.id == id
-        }
+        activeCatalog.firstIndex { $0.id == id }
     }
 
     private func syncPublishedFromActiveContentLanguage() {
-        if currentContentLanguage() == .hebrew {
-            catalog = hebrew.catalog
-            shopping = hebrew.shopping
-            inventoryTags = hebrew.inventoryTags
-            shoppingTags = hebrew.shoppingTags
-            recipes = hebrew.recipes
-        } else {
-            catalog = english.catalog
-            shopping = english.shopping
-            inventoryTags = english.inventoryTags
-            shoppingTags = english.shoppingTags
-            recipes = english.recipes
-        }
+        let bundle = activeBundle
+        catalog = bundle.catalog
+        shopping = bundle.shopping
+        inventoryTags = bundle.inventoryTags
+        shoppingTags = bundle.shoppingTags
+        recipes = bundle.recipes
     }
 
     // MARK: - Sorting
@@ -868,12 +750,9 @@ final class GroceryStore: ObservableObject {
     }
 
     private func sortActiveTagsInPlace() {
-        if currentContentLanguage() == .hebrew {
-            hebrew.inventoryTags.sort(by: tagSortPredicate)
-            hebrew.shoppingTags.sort(by: tagSortPredicate)
-        } else {
-            english.inventoryTags.sort(by: tagSortPredicate)
-            english.shoppingTags.sort(by: tagSortPredicate)
+        mutateActive { bundle in
+            bundle.inventoryTags.sort(by: tagSortPredicate)
+            bundle.shoppingTags.sort(by: tagSortPredicate)
         }
     }
 
@@ -886,10 +765,8 @@ final class GroceryStore: ObservableObject {
     }
 
     private func sortShoppingInPlace() {
-        if currentContentLanguage() == .hebrew {
-            hebrew.shopping.sort { $0.addedAt > $1.addedAt }
-        } else {
-            english.shopping.sort { $0.addedAt > $1.addedAt }
+        mutateActive { bundle in
+            bundle.shopping.sort { $0.addedAt > $1.addedAt }
         }
     }
 
@@ -928,14 +805,6 @@ final class GroceryStore: ObservableObject {
             for (order, idx) in indices.enumerated() {
                 bundle.catalog[idx].sortOrder = order
             }
-        }
-    }
-
-    private func compactCatalogSortOrders(inInventoryTagID tagID: UUID, language: AppContentLanguage) {
-        if language == .hebrew {
-            compactCatalogSortOrders(inInventoryTagID: tagID, bundle: &hebrew)
-        } else {
-            compactCatalogSortOrders(inInventoryTagID: tagID, bundle: &english)
         }
     }
 
@@ -997,15 +866,12 @@ final class GroceryStore: ObservableObject {
             compactCatalogSortOrders(inInventoryTagID: tagID, bundle: &bundle)
         }
 
-        if lang == .hebrew {
-            move(in: &hebrew)
-        } else {
-            move(in: &english)
+        mutateActive { bundle in
+            move(in: &bundle)
         }
 
         sortCatalog(for: lang)
-        saveAllToDisk()
-        syncPublishedFromActiveContentLanguage()
+        saveAndPublish()
     }
 
     /// Replaces visible slots in tag order with `reorderedVisibleIDs` (same multiset); hidden IDs unchanged in place.
