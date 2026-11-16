@@ -59,6 +59,17 @@
         }
       }
     },
+    "Couldn't Leave Household" : {
+      "comment" : "Alert title when leaving the household fails",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ניתן לעזוב את משק הבית"
+          }
+        }
+      }
+    },
     "Couldn't Open Household" : {
       "comment" : "Alert title when household sharing fails to open",
       "localizations" : {
@@ -99,6 +110,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "משק בית"
+          }
+        }
+      }
+    },
+    "Household Sharing Ended" : {
+      "comment" : "Alert title when a member was removed or sharing stopped",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "שיתוף משק הבית הסתיים"
           }
         }
       }
@@ -257,6 +279,39 @@
         }
       }
     },
+    "Leave" : {
+      "comment" : "Alert button: leave the household",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "עזיבה"
+          }
+        }
+      }
+    },
+    "Leave Household" : {
+      "comment" : "Settings button for members: leave the household",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "עזיבת משק הבית"
+          }
+        }
+      }
+    },
+    "Leave Household?" : {
+      "comment" : "Confirm alert title before leaving the household",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לעזוב את משק הבית?"
+          }
+        }
+      }
+    },
     ", %lld unchecked" : {
       "comment" : "Accessibility suffix for collapsed section with unchecked count",
       "localizations" : {
@@ -297,6 +352,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ודאו שאתם מחוברים לאינטרנט, ואז הקישו שוב על קישור ההזמנה."
+          }
+        }
+      }
+    },
+    "Make sure you're online, then try again." : {
+      "comment" : "Alert message when leaving the household fails",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ודאו שאתם מחוברים לאינטרנט ונסו שוב."
           }
         }
       }
@@ -429,6 +495,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "מסנכרן…"
+          }
+        }
+      }
+    },
+    "To stop syncing, leave the household." : {
+      "comment" : "iCloud Sync footer for household members (switch is locked on)",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כדי להפסיק את הסנכרון, עזבו את משק הבית."
+          }
+        }
+      }
+    },
+    "Turn Off" : {
+      "comment" : "Alert button: turn off iCloud Sync",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כיבוי"
+          }
+        }
+      }
+    },
+    "Turn Off iCloud Sync?" : {
+      "comment" : "Confirm alert title when an owner with a household turns sync off",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לכבות את סנכרון iCloud?"
           }
         }
       }
@@ -3615,6 +3714,28 @@
         }
       }
     },
+    "You're no longer in %@'s household. Your lists are still on this iPhone." : {
+      "comment" : "Alert message when removed from a household; %@ is the owner's name",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "אתם כבר לא חברים במשק הבית של %@. הרשימות שלכם עדיין באייפון זה."
+          }
+        }
+      }
+    },
+    "You're no longer in the household. Your lists are still on this iPhone." : {
+      "comment" : "Alert message when removed from a household, owner name unknown",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "אתם כבר לא חברים במשק הבית. הרשימות שלכם עדיין באייפון זה."
+          }
+        }
+      }
+    },
     "You're not signed in to iCloud. Sign in from the Settings app to use sync." : {
       "comment" : "iCloud Sync status: no iCloud account",
       "localizations" : {
@@ -3622,6 +3743,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "אינכם מחוברים ל-iCloud. התחברו מאפליקציית ההגדרות כדי להשתמש בסנכרון."
+          }
+        }
+      }
+    },
+    "Your household will keep using these lists, but this iPhone will stop seeing their changes." : {
+      "comment" : "Confirm alert message when an owner with a household turns sync off",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "משק הבית ימשיך להשתמש ברשימות האלה, אבל האייפון הזה יפסיק לראות את השינויים שלהם."
           }
         }
       }
@@ -3644,6 +3776,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "הספרייה והקבוצות יובאו בהצלחה."
+          }
+        }
+      }
+    },
+    "Your lists stay on this iPhone, but you'll stop seeing the household's changes." : {
+      "comment" : "Confirm alert message before leaving the household",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הרשימות שלכם יישארו באייפון זה, אבל לא תראו יותר את השינויים של משק הבית."
           }
         }
       }

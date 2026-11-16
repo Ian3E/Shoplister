@@ -48,6 +48,8 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         case iCloudAccountChanged
         /// Shoplister's data was deleted from iCloud; sync was turned off, local lists kept.
         case iCloudDataDeleted
+        /// The owner removed this member or stopped sharing; sync was turned off, local lists kept.
+        case removedFromHousehold
 
         var id: Self { self }
     }
@@ -66,6 +68,12 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     @Published private(set) var isJoiningHousehold = false
     /// Accepting the invite failed (alert at the app root).
     @Published var householdJoinFailed = false
+    /// Removing this member from the household in iCloud (Leave Household).
+    @Published private(set) var isLeavingHousehold = false
+    /// Leaving failed (usually offline); shown as an alert in Settings.
+    @Published var householdLeaveFailed = false
+    /// For the "no longer in X's household" message (membership is already cleared by then).
+    @Published private(set) var endedHouseholdOwnerName: String?
 
     /// The household share for this zone, if the owner has created one (Phase 2b).
     @Published private(set) var householdShare: CKShare?
@@ -159,6 +167,9 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         systemFieldsByRecordName = Self.loadSystemFields()
         if UserDefaults.standard.bool(forKey: AppICloudSync.storageKey) {
             startEngine()
+            if Self.isHouseholdMember {
+                Task { await verifyHouseholdMembership() }
+            }
         }
         // After the engine starts: setting this delivers edits made before launch finished
         // (e.g. share-extension items merged in GroceryStore.init), which need the engine running.
@@ -191,11 +202,8 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             if hasLibrary {
                 enablePrompt = .replaceLocalLibrary
             } else if Self.isHouseholdMember {
-                // The household isn't there any more (sharing stopped); go back to this device's own iCloud.
-                // Step 2f adds a proper message for this.
-                Self.setMembership(ownerZoneName: nil, ownerDisplayName: nil)
-                enablePrompt = .iCloudDataDeleted
-                turnSwitchOff()
+                // The household isn't there any more (sharing stopped).
+                householdEndedForMember()
             } else {
                 startEngine()
                 queueFullUpload()
@@ -254,11 +262,13 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         turnSwitchOff()
     }
 
-    /// Sync can't continue (account gone or iCloud data deleted): forget this device's sync history,
-    /// keep the lists, explain why, and turn the switch off.
-    private func turnOffKeepingLocalLists(notice: EnablePrompt) {
+    /// Sync can't continue (account gone, iCloud data deleted, left or removed from the household):
+    /// forget this device's sync history and household membership, keep the lists, explain why
+    /// (if `notice` is set), and turn the switch off.
+    private func turnOffKeepingLocalLists(notice: EnablePrompt?) {
         stopEngine()
         Self.deleteLocalSyncFiles()
+        Self.setMembership(ownerZoneName: nil, ownerDisplayName: nil)
         systemFieldsByRecordName = [:]
         isReplacingLocalLibrary = false
         replacementBuffer = []
@@ -346,6 +356,9 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     /// Checks iCloud for other devices' changes now (called when the app comes to the front).
     func fetchNow() {
         guard let engine else { return }
+        if Self.isHouseholdMember {
+            Task { await verifyHouseholdMembership() }
+        }
         let logger = self.logger
         Task.detached {
             do {
@@ -405,6 +418,65 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             restartWithFullDownload()
             logger.info("Joined household; downloading its lists")
         }
+    }
+
+    /// Settings → Leave Household: take this person out of the share in iCloud, then keep the current
+    /// lists on this device as its own (sync off).
+    func leaveHousehold() async {
+        guard Self.isHouseholdMember, !isLeavingHousehold else { return }
+        isLeavingHousehold = true
+        defer { isLeavingHousehold = false }
+        do {
+            // A participant leaves a share by deleting it from their shared database.
+            _ = try await container.sharedCloudDatabase.deleteRecord(withID: Self.householdShareID)
+        } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
+            // Already removed (e.g. the owner stopped sharing): just clean up here.
+        } catch {
+            logger.error("Couldn't leave household: \(error.localizedDescription)")
+            householdLeaveFailed = true
+            return
+        }
+        logger.info("Left household")
+        turnOffKeepingLocalLists(notice: nil)
+    }
+
+    /// iCloud doesn't reliably notify a member that they were removed, so check directly: a removed
+    /// member can no longer read the household's share. Runs at launch and whenever the app comes to
+    /// the front. Network trouble is ignored (we'll check again next time).
+    private func verifyHouseholdMembership() async {
+        guard Self.isHouseholdMember, engine != nil, !isReplacingLocalLibrary, !isLeavingHousehold else { return }
+        let shareID = Self.householdShareID
+        do {
+            let record = try await container.sharedCloudDatabase.record(for: shareID)
+            // Still readable: make sure we're still an accepted participant.
+            if let share = record as? CKShare,
+               let me = share.currentUserParticipant,
+               me.acceptanceStatus == .removed
+            {
+                logger.info("Household check: this member was removed")
+                endHouseholdIfStillMember(of: shareID)
+            }
+        } catch let error as CKError
+            where error.code == .unknownItem || error.code == .zoneNotFound || error.code == .permissionFailure
+        {
+            logger.info("Household check: share no longer available (\(error.code.rawValue))")
+            endHouseholdIfStillMember(of: shareID)
+        } catch {
+            logger.info("Household check skipped: \(error.localizedDescription)")
+        }
+    }
+
+    /// Guards against a slow check finishing after the person already left or joined another household.
+    private func endHouseholdIfStillMember(of shareID: CKRecord.ID) {
+        guard Self.isHouseholdMember, Self.householdShareID == shareID else { return }
+        householdEndedForMember()
+    }
+
+    /// The owner removed this member or stopped sharing.
+    private func householdEndedForMember() {
+        logger.info("Household sharing ended for this member")
+        endedHouseholdOwnerName = Self.householdOwnerDisplayName
+        turnOffKeepingLocalLists(notice: .removedFromHousehold)
     }
 
     /// "Back Up First" in the invite prompt: share a backup file, then ask again.
@@ -539,8 +611,13 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             }
         case .fetchedDatabaseChanges(let changes):
             if changes.deletions.contains(where: { Self.isOurZone($0.zoneID) }) {
-                logger.info("Household zone was deleted from iCloud")
-                turnOffKeepingLocalLists(notice: .iCloudDataDeleted)
+                if Self.isHouseholdMember {
+                    // For a member, the shared zone disappearing means removed / sharing stopped.
+                    householdEndedForMember()
+                } else {
+                    logger.info("Household zone was deleted from iCloud")
+                    turnOffKeepingLocalLists(notice: .iCloudDataDeleted)
+                }
             }
         case .willSendChanges, .willFetchChanges:
             status = .syncing
@@ -763,6 +840,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
         var retry: [CKSyncEngine.PendingRecordZoneChange] = []
         var hadPermanentFailure = false
+        var householdEnded = false
         for failure in sent.failedRecordSaves {
             let recordID = failure.record.recordID
             switch failure.error.code {
@@ -773,10 +851,10 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
                     systemFieldsByRecordName[recordID.recordName] = Self.encodeSystemFields(of: serverRecord)
                 }
                 retry.append(.saveRecord(recordID))
-            case .zoneNotFound where Self.isHouseholdMember:
-                // The household's zone is gone (sharing stopped); step 2f handles this properly.
-                hadPermanentFailure = true
-                logger.error("Household zone not found while saving \(recordID.recordName)")
+            case .zoneNotFound where Self.isHouseholdMember, .permissionFailure where Self.isHouseholdMember:
+                // The household's zone is gone or no longer ours to edit: removed from the household
+                // or sharing stopped.
+                householdEnded = true
             case .zoneNotFound:
                 syncEngine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: Self.zoneID))])
                 systemFieldsByRecordName[recordID.recordName] = nil
@@ -795,6 +873,10 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
                 hadPermanentFailure = true
                 logger.error("Couldn't save \(recordID.recordName): \(failure.error.localizedDescription)")
             }
+        }
+        if householdEnded {
+            householdEndedForMember()
+            return
         }
         if !retry.isEmpty {
             syncEngine.state.add(pendingRecordZoneChanges: retry)

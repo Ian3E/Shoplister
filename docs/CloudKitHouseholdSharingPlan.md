@@ -1,7 +1,7 @@
 # Household sync plan (CloudKit)
 
 > **Scope:** Sync the item library, shopping list, sections, and saved lists across a user's own devices, then share them with a household.
-> **Status:** Phase 0 implemented and tested (November 2026), shipping as 1.2. Phases 1–3 not started. Replaces the June 2026 plan and `MultiUserSharingPlan.md`.
+> **Status:** Phases 0–2 implemented and tested (November 2026); Phase 0 shipping as 1.2. Phase 3 not started. Replaces the June 2026 plan and `MultiUserSharingPlan.md`.
 > **Priorities:** simplicity and reliability over features.
 
 ---
@@ -115,6 +115,8 @@ Goal: get off UserDefaults and give sync a single mutation path, with **no visib
 
 ### Phase 2 — Household sharing
 
+**As built (2a–2f):** members sync through the shared database against the owner's `Household` zone (membership in UserDefaults `app.householdMemberZoneOwner`). Members can edit everything except language, Import and Clear library; their iCloud Sync switch is locked on (leave instead). Leaving / being removed / sharing stopped keeps the lists locally and turns sync off. Members verify membership at launch and on foreground, because iCloud doesn't reliably notify a removed participant.
+
 - Create household = create `CKShare(recordZoneID:)` for the zone; invite with `UICloudSharingController`.
 - Accept invite (`CKShare.Metadata`); prompt before replacing the member's local library (offer backup first); start the shared-DB engine.
 - Leave (member), stop sharing / delete household (owner).
@@ -164,7 +166,7 @@ Goal: get off UserDefaults and give sync a single mutation path, with **no visib
 - [x] Phase 0: test pass
 - [ ] Phase 0: ship 1.2
 - [ ] 1.3: remove the UserDefaults dual-write and the "prefer a differing UserDefaults copy" check in `GroceryStore.loadBundle`
-- [ ] Apple setup: CloudKit container `iCloud.com.byteloft.apps.shoplister`, push, background modes
-- [ ] Phase 1: CKSyncEngine (private DB), record mapping, conflict rules, Settings sync status
-- [ ] Phase 2: zone share, invite/accept/leave/delete, owner-only language, Household settings
+- [x] Apple setup: CloudKit container `iCloud.com.byteloft.apps.shoplister`, push, background modes
+- [x] Phase 1: CKSyncEngine (private DB), record mapping, conflict rules, Settings sync status
+- [x] Phase 2: zone share, invite/accept/leave/delete, owner-only language, Household settings
 - [ ] Phase 3: photo sync, extension through sync, schema to Production, privacy updates

@@ -187,6 +187,19 @@ struct ShoplisterApp: App {
                 } message: {
                     Text(LocalizedCopy.joinHouseholdMessage(ownerName: sync.pendingHouseholdInvite?.ownerName))
                 }
+                .alert(
+                    LocalizedCopy.householdEndedTitle,
+                    isPresented: Binding(
+                        get: { sync.enablePrompt == .removedFromHousehold },
+                        set: { if !$0 { sync.enablePrompt = nil } }
+                    )
+                ) {
+                    Button(LocalizedCopy.ok, role: .cancel) {
+                        sync.enablePrompt = nil
+                    }
+                } message: {
+                    Text(LocalizedCopy.householdEndedMessage(ownerName: sync.endedHouseholdOwnerName))
+                }
                 .alert(LocalizedCopy.couldNotJoinHouseholdTitle, isPresented: $sync.householdJoinFailed) {
                     Button(LocalizedCopy.ok, role: .cancel) {}
                 } message: {

@@ -90,6 +90,27 @@ struct SettingsItemLibraryView: View {
     @State private var isPresentingClearLibraryConfirm = false
     @State private var backupErrorMessage: String?
     @State private var backupSuccessMessage: String?
+    @State private var isConfirmingOwnerSyncOff = false
+    @State private var isConfirmingLeaveHousehold = false
+
+    /// The owner has people in the household (the share lists more than just the owner).
+    private var hasHouseholdMembers: Bool {
+        (sync.householdShare?.participants.count ?? 0) > 1
+    }
+
+    /// The switch, with a confirmation before an owner with a household turns it off (Phase 2f).
+    private var iCloudSyncToggleBinding: Binding<Bool> {
+        Binding(
+            get: { iCloudSyncEnabled },
+            set: { newValue in
+                if !newValue, hasHouseholdMembers {
+                    isConfirmingOwnerSyncOff = true
+                } else {
+                    iCloudSyncEnabled = newValue
+                }
+            }
+        )
+    }
 
     /// Phase 2e: household members can't do the library-wide actions that would wipe everyone's lists.
     private var isOwnerOnlyLocked: Bool {
@@ -119,12 +140,21 @@ struct SettingsItemLibraryView: View {
     var body: some View {
         List {
             Section {
-                Toggle(LocalizedCopy.iCloudSync, isOn: $iCloudSyncEnabled)
-                    // Can always turn off; can turn on only when an iCloud account is ready.
-                    .disabled(!iCloudSyncEnabled && !iCloudAccount.status.allowsEnablingSync)
+                Toggle(LocalizedCopy.iCloudSync, isOn: iCloudSyncToggleBinding)
+                    // Can turn on only when an iCloud account is ready. Members can't turn it off;
+                    // they leave the household instead (Phase 2f).
+                    .disabled((!iCloudSyncEnabled && !iCloudAccount.status.allowsEnablingSync) || isOwnerOnlyLocked)
+                    .alert(LocalizedCopy.turnOffICloudSyncTitle, isPresented: $isConfirmingOwnerSyncOff) {
+                        Button(LocalizedCopy.turnOff, role: .destructive) {
+                            iCloudSyncEnabled = false
+                        }
+                        Button(LocalizedCopy.cancel, role: .cancel) {}
+                    } message: {
+                        Text(LocalizedCopy.turnOffICloudSyncOwnerMessage)
+                    }
             } footer: {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(LocalizedCopy.iCloudSyncFooter)
+                    Text(isOwnerOnlyLocked ? LocalizedCopy.memberSyncLockedFooter : LocalizedCopy.iCloudSyncFooter)
                     if let iCloudStatusText {
                         Text(iCloudStatusText)
                     }
@@ -137,6 +167,31 @@ struct SettingsItemLibraryView: View {
                         LocalizedCopy.householdMemberOf(ownerName: SyncService.householdOwnerDisplayName),
                         systemImage: "person.2"
                     )
+                    Button(role: .destructive) {
+                        isConfirmingLeaveHousehold = true
+                    } label: {
+                        HStack {
+                            Text(LocalizedCopy.leaveHousehold)
+                            if sync.isLeavingHousehold {
+                                Spacer()
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .disabled(sync.isLeavingHousehold)
+                    .alert(LocalizedCopy.leaveHouseholdTitle, isPresented: $isConfirmingLeaveHousehold) {
+                        Button(LocalizedCopy.leave, role: .destructive) {
+                            Task { await sync.leaveHousehold() }
+                        }
+                        Button(LocalizedCopy.cancel, role: .cancel) {}
+                    } message: {
+                        Text(LocalizedCopy.leaveHouseholdMessage)
+                    }
+                    .alert(LocalizedCopy.couldNotLeaveHouseholdTitle, isPresented: $sync.householdLeaveFailed) {
+                        Button(LocalizedCopy.ok, role: .cancel) {}
+                    } message: {
+                        Text(LocalizedCopy.couldNotLeaveHouseholdMessage)
+                    }
                 } header: {
                     Text(LocalizedCopy.household)
                 } footer: {

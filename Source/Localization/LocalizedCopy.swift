@@ -571,6 +571,72 @@ enum LocalizedCopy {
         )
     }
 
+    static var leaveHousehold: String {
+        String(localized: "Leave Household", comment: "Settings button for members: leave the household")
+    }
+
+    static var leaveHouseholdTitle: String {
+        String(localized: "Leave Household?", comment: "Confirm alert title before leaving the household")
+    }
+
+    static var leaveHouseholdMessage: String {
+        String(
+            localized: "Your lists stay on this iPhone, but you'll stop seeing the household's changes.",
+            comment: "Confirm alert message before leaving the household"
+        )
+    }
+
+    static var leave: String {
+        String(localized: "Leave", comment: "Alert button: leave the household")
+    }
+
+    static var couldNotLeaveHouseholdTitle: String {
+        String(localized: "Couldn't Leave Household", comment: "Alert title when leaving the household fails")
+    }
+
+    static var couldNotLeaveHouseholdMessage: String {
+        String(localized: "Make sure you're online, then try again.", comment: "Alert message when leaving the household fails")
+    }
+
+    static var memberSyncLockedFooter: String {
+        String(
+            localized: "To stop syncing, leave the household.",
+            comment: "iCloud Sync footer for household members (switch is locked on)"
+        )
+    }
+
+    static var householdEndedTitle: String {
+        String(localized: "Household Sharing Ended", comment: "Alert title when a member was removed or sharing stopped")
+    }
+
+    static func householdEndedMessage(ownerName: String?) -> String {
+        if let ownerName {
+            return String(
+                localized: "You're no longer in \(ownerName)'s household. Your lists are still on this iPhone.",
+                comment: "Alert message when removed from a household; %@ is the owner's name"
+            )
+        }
+        return String(
+            localized: "You're no longer in the household. Your lists are still on this iPhone.",
+            comment: "Alert message when removed from a household, owner name unknown"
+        )
+    }
+
+    static var turnOffICloudSyncTitle: String {
+        String(localized: "Turn Off iCloud Sync?", comment: "Confirm alert title when an owner with a household turns sync off")
+    }
+
+    static var turnOffICloudSyncOwnerMessage: String {
+        String(
+            localized: "Your household will keep using these lists, but this iPhone will stop seeing their changes.",
+            comment: "Confirm alert message when an owner with a household turns sync off"
+        )
+    }
+
+    static var turnOff: String {
+        String(localized: "Turn Off", comment: "Alert button: turn off iCloud Sync")
+    }
+
     static var household: String {
         String(localized: "Household", comment: "Settings section title for household sharing")
     }
