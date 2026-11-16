@@ -676,19 +676,112 @@ final class GroceryStore: ObservableObject {
     /// access Swift traps on at runtime.
     private func mutateActive(_ body: (inout V3Bundle) -> Void) {
         if currentContentLanguage() == .hebrew {
+            let before = hebrew
             body(&hebrew)
+            reportLibraryChange(from: before, to: hebrew)
         } else {
+            let before = english
             body(&english)
+            reportLibraryChange(from: before, to: english)
         }
     }
 
     /// `mutateActive` that returns a value (e.g. whether anything changed).
     private func mutateActiveReturning<T>(_ body: (inout V3Bundle) -> T) -> T {
         if currentContentLanguage() == .hebrew {
-            return body(&hebrew)
+            let before = hebrew
+            let result = body(&hebrew)
+            reportLibraryChange(from: before, to: hebrew)
+            return result
         } else {
-            return body(&english)
+            let before = english
+            let result = body(&english)
+            reportLibraryChange(from: before, to: english)
+            return result
         }
+    }
+
+    // MARK: - Change reporting for iCloud sync (Phase 1d)
+
+    /// Which objects a user action added/changed (`saved…`) or removed (`deleted…`) in the active library.
+    struct LibraryChangeSet {
+        var savedItemIDs: Set<UUID> = []
+        var deletedItemIDs: Set<UUID> = []
+        var savedTagIDs: Set<UUID> = []
+        var deletedTagIDs: Set<UUID> = []
+        var savedShoppingEntryIDs: Set<UUID> = []
+        var deletedShoppingEntryIDs: Set<UUID> = []
+        var savedRecipeIDs: Set<UUID> = []
+        var deletedRecipeIDs: Set<UUID> = []
+
+        var isEmpty: Bool {
+            savedItemIDs.isEmpty && deletedItemIDs.isEmpty && savedTagIDs.isEmpty && deletedTagIDs.isEmpty
+                && savedShoppingEntryIDs.isEmpty && deletedShoppingEntryIDs.isEmpty
+                && savedRecipeIDs.isEmpty && deletedRecipeIDs.isEmpty
+        }
+
+        mutating func merge(_ other: LibraryChangeSet) {
+            savedItemIDs.formUnion(other.savedItemIDs)
+            deletedItemIDs.formUnion(other.deletedItemIDs)
+            savedTagIDs.formUnion(other.savedTagIDs)
+            deletedTagIDs.formUnion(other.deletedTagIDs)
+            savedShoppingEntryIDs.formUnion(other.savedShoppingEntryIDs)
+            deletedShoppingEntryIDs.formUnion(other.deletedShoppingEntryIDs)
+            savedRecipeIDs.formUnion(other.savedRecipeIDs)
+            deletedRecipeIDs.formUnion(other.deletedRecipeIDs)
+        }
+    }
+
+    /// Set by `SyncService`. Receives every user change to the active library (not downloads).
+    /// Changes made before it's set (e.g. share-extension items merged at launch) are held and
+    /// delivered as soon as it is.
+    var onLibraryChange: ((LibraryChangeSet) -> Void)? {
+        didSet {
+            guard let onLibraryChange, !changesWaitingForSync.isEmpty else { return }
+            let waiting = changesWaitingForSync
+            changesWaitingForSync = LibraryChangeSet()
+            onLibraryChange(waiting)
+        }
+    }
+
+    private var changesWaitingForSync = LibraryChangeSet()
+    /// True while applying downloaded changes, so they aren't reported (and sent) back to iCloud.
+    private var isApplyingSyncedChanges = false
+
+    private func reportLibraryChange(from before: V3Bundle, to after: V3Bundle) {
+        guard !isApplyingSyncedChanges else { return }
+        var change = LibraryChangeSet()
+        (change.savedItemIDs, change.deletedItemIDs) = Self.diff(before.catalog, after.catalog)
+        (change.savedTagIDs, change.deletedTagIDs) = Self.diff(
+            before.inventoryTags + before.shoppingTags,
+            after.inventoryTags + after.shoppingTags
+        )
+        (change.savedShoppingEntryIDs, change.deletedShoppingEntryIDs) = Self.diff(before.shopping, after.shopping)
+        (change.savedRecipeIDs, change.deletedRecipeIDs) = Self.diff(before.recipes, after.recipes)
+        guard !change.isEmpty else { return }
+        if let onLibraryChange {
+            onLibraryChange(change)
+        } else {
+            changesWaitingForSync.merge(change)
+        }
+    }
+
+    /// IDs whose value is new or changed, and IDs that disappeared. Pure reordering reports nothing.
+    private static func diff<Element: Identifiable & Equatable>(
+        _ old: [Element],
+        _ new: [Element]
+    ) -> (saved: Set<UUID>, deleted: Set<UUID>) where Element.ID == UUID {
+        if old == new { return ([], []) }
+        let oldByID = Dictionary(old.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var saved = Set<UUID>()
+        var present = Set<UUID>()
+        for element in new {
+            present.insert(element.id)
+            if oldByID[element.id] != element {
+                saved.insert(element.id)
+            }
+        }
+        return (saved, Set(oldByID.keys).subtracting(present))
     }
 
     /// Saves both libraries and republishes the active one to the UI.
@@ -1302,6 +1395,8 @@ final class GroceryStore: ObservableObject {
     func applySyncedChanges(_ changes: SyncedLibraryChanges, replacingActiveLibrary: Bool) {
         guard replacingActiveLibrary || !changes.isEmpty else { return }
         invalidateShoppingListUndo()
+        isApplyingSyncedChanges = true
+        defer { isApplyingSyncedChanges = false }
         let isHebrew = currentContentLanguage() == .hebrew
         mutateActive { bundle in
             if replacingActiveLibrary {

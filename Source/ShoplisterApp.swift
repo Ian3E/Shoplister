@@ -108,6 +108,7 @@ struct ShoplisterApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     store.mergeShareExtensionShoppingOpsIfNeeded()
                     syncShoppingIconBadge()
+                    SyncService.shared.fetchNow()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .shareExtensionPendingShoppingOpsEnqueued)) { _ in
                     store.mergeShareExtensionShoppingOpsIfNeeded()

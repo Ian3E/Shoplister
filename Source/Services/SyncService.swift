@@ -1,6 +1,7 @@
 import CloudKit
 import Foundation
 import os
+import UIKit
 
 /// iCloud sync for the active language's library (household sync plan, Phase 1).
 ///
@@ -8,7 +9,8 @@ import os
 /// list into the `Household` zone of the user's private database.
 /// **1c:** before uploading, check whether iCloud already has a library; if so, ask, then replace
 /// this device's library with a full download. Later downloaded changes are merged in.
-/// Sending each edit as it happens comes in 1d.
+/// **1d:** every user edit is reported by `GroceryStore.onLibraryChange` and queued for upload;
+/// other devices learn about it via CloudKit push (plus a fetch whenever the app comes to the front).
 ///
 /// Built on `CKSyncEngine`, which batches, retries network/account problems, and remembers what is
 /// still unsent (its state is saved to disk on every `.stateUpdate`). Conflicts follow the plan's
@@ -71,10 +73,16 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
     /// Call once at launch. Starts syncing if the switch is already on.
     func attach(store: GroceryStore) {
+        guard self.store == nil else { return }
         self.store = store
         systemFieldsByRecordName = Self.loadSystemFields()
         if UserDefaults.standard.bool(forKey: AppICloudSync.storageKey) {
             startEngine()
+        }
+        // After the engine starts: setting this delivers edits made before launch finished
+        // (e.g. share-extension items merged in GroceryStore.init), which need the engine running.
+        store.onLibraryChange = { [weak self] change in
+            self?.queueLocalChanges(change)
         }
     }
 
@@ -159,6 +167,8 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             delegate: self
         )
         engine = CKSyncEngine(configuration)
+        // Lets CloudKit's silent pushes reach the app so other devices' edits arrive promptly.
+        UIApplication.shared.registerForRemoteNotifications()
         updateStatusFromPendingChanges()
         logger.info("Sync engine started")
     }
@@ -186,6 +196,38 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         engine.state.add(pendingRecordZoneChanges: names.map { .saveRecord(Self.recordID($0)) })
         status = .syncing
         logger.info("Queued full upload of \(names.count) records")
+    }
+
+    /// Queues one user edit (from `GroceryStore`) for upload. Ignored while sync is off.
+    private func queueLocalChanges(_ change: GroceryStore.LibraryChangeSet) {
+        guard let engine, !isReplacingLocalLibrary else { return }
+        func ids(_ type: String, _ uuids: Set<UUID>) -> [CKRecord.ID] {
+            uuids.map { Self.recordID(Self.recordName(type, $0.uuidString)) }
+        }
+        let saves = ids(RecordType.item, change.savedItemIDs)
+            + ids(RecordType.section, change.savedTagIDs)
+            + ids(RecordType.shoppingEntry, change.savedShoppingEntryIDs)
+            + ids(RecordType.savedList, change.savedRecipeIDs)
+        let deletes = ids(RecordType.item, change.deletedItemIDs)
+            + ids(RecordType.section, change.deletedTagIDs)
+            + ids(RecordType.shoppingEntry, change.deletedShoppingEntryIDs)
+            + ids(RecordType.savedList, change.deletedRecipeIDs)
+        engine.state.add(pendingRecordZoneChanges: saves.map { .saveRecord($0) } + deletes.map { .deleteRecord($0) })
+        if status != .failed {
+            status = .syncing
+        }
+    }
+
+    /// Checks iCloud for other devices' changes now (called when the app comes to the front).
+    func fetchNow() {
+        guard let engine else { return }
+        Task {
+            do {
+                try await engine.fetchChanges()
+            } catch {
+                logger.info("Foreground fetch didn't complete: \(error.localizedDescription)")
+            }
+        }
     }
 
     // MARK: - CKSyncEngineDelegate
@@ -251,7 +293,16 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     // MARK: - Fetched changes
 
     private func handleFetchedRecordZoneChanges(_ fetched: CKSyncEngine.Event.FetchedRecordZoneChanges) {
+        // An unsent local edit is newer than whatever iCloud has; skip that record's download so the
+        // edit isn't briefly undone (it uploads next and wins — "last to sync wins").
+        let pendingSaveNames: Set<String> = Set(
+            (engine?.state.pendingRecordZoneChanges ?? []).compactMap { change in
+                if case .saveRecord(let id) = change { return id.recordName }
+                return nil
+            }
+        )
         let records = fetched.modifications.map(\.record)
+            .filter { !pendingSaveNames.contains($0.recordID.recordName) }
         for record in records {
             systemFieldsByRecordName[record.recordID.recordName] = Self.encodeSystemFields(of: record)
         }
@@ -375,6 +426,9 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     ) {
         for record in sent.savedRecords {
             systemFieldsByRecordName[record.recordID.recordName] = Self.encodeSystemFields(of: record)
+        }
+        for recordID in sent.deletedRecordIDs {
+            systemFieldsByRecordName[recordID.recordName] = nil
         }
 
         var retry: [CKSyncEngine.PendingRecordZoneChange] = []
