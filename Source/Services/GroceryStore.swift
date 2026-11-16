@@ -1275,6 +1275,85 @@ final class GroceryStore: ObservableObject {
         )
     }
 
+    // MARK: - iCloud sync (Phase 1c)
+
+    /// Library objects downloaded from iCloud, to merge into the active language's library.
+    struct SyncedLibraryChanges {
+        var items: [GroceryItem] = []
+        var tags: [Tag] = []
+        var shoppingEntries: [ShoppingEntry] = []
+        var recipes: [Recipe] = []
+        var deletedItemIDs: Set<UUID> = []
+        var deletedTagIDs: Set<UUID> = []
+        var deletedShoppingEntryIDs: Set<UUID> = []
+        var deletedRecipeIDs: Set<UUID> = []
+
+        var isEmpty: Bool {
+            items.isEmpty && tags.isEmpty && shoppingEntries.isEmpty && recipes.isEmpty
+                && deletedItemIDs.isEmpty && deletedTagIDs.isEmpty
+                && deletedShoppingEntryIDs.isEmpty && deletedRecipeIDs.isEmpty
+        }
+    }
+
+    /// Applies changes downloaded from iCloud to the active language's library.
+    /// With `replacingActiveLibrary`, the active library is first emptied (turning sync on for a
+    /// device that chose "Replace with iCloud"). Kept separate from user actions so that, once edits
+    /// upload automatically (1d), downloaded changes aren't sent straight back.
+    func applySyncedChanges(_ changes: SyncedLibraryChanges, replacingActiveLibrary: Bool) {
+        guard replacingActiveLibrary || !changes.isEmpty else { return }
+        invalidateShoppingListUndo()
+        let isHebrew = currentContentLanguage() == .hebrew
+        mutateActive { bundle in
+            if replacingActiveLibrary {
+                bundle.catalog = []
+                bundle.inventoryTags = []
+                bundle.shoppingTags = []
+                bundle.shopping = []
+                bundle.recipes = []
+            }
+            Self.upsert(changes.items, into: &bundle.catalog)
+            Self.upsert(changes.tags.filter { $0.kind == .inventory }, into: &bundle.inventoryTags)
+            Self.upsert(changes.tags.filter { $0.kind == .shopping }, into: &bundle.shoppingTags)
+            Self.upsert(changes.shoppingEntries, into: &bundle.shopping)
+            Self.upsert(changes.recipes, into: &bundle.recipes)
+
+            bundle.catalog.removeAll { changes.deletedItemIDs.contains($0.id) }
+            bundle.inventoryTags.removeAll { changes.deletedTagIDs.contains($0.id) }
+            bundle.shoppingTags.removeAll { changes.deletedTagIDs.contains($0.id) }
+            bundle.shopping.removeAll { changes.deletedShoppingEntryIDs.contains($0.id) }
+            bundle.recipes.removeAll { changes.deletedRecipeIDs.contains($0.id) }
+
+            // Always keep an "Undefined" section, and never leave an item pointing at a missing one.
+            ensureUnsortedInSide(&bundle, hebrew: isHebrew)
+            repairOrphanedTagIds(in: &bundle)
+        }
+        sortActiveTagsInPlace()
+        sortCatalog(for: currentContentLanguage())
+        sortShoppingInPlace()
+        sortRecipesInActiveBundle()
+        saveAndPublish()
+    }
+
+    /// Replaces elements with matching IDs, appends the rest.
+    private static func upsert<Element: Identifiable>(
+        _ incoming: [Element],
+        into array: inout [Element]
+    ) where Element.ID == UUID {
+        guard !incoming.isEmpty else { return }
+        var indexByID = Dictionary(
+            array.enumerated().map { ($0.element.id, $0.offset) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        for element in incoming {
+            if let index = indexByID[element.id] {
+                array[index] = element
+            } else {
+                indexByID[element.id] = array.count
+                array.append(element)
+            }
+        }
+    }
+
     // MARK: - Library backup (one language, zip with library.txt + images)
 
     func exportLibraryBackup(for language: AppContentLanguage) throws -> URL {

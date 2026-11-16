@@ -492,6 +492,32 @@ enum LocalizedCopy {
         )
     }
 
+    static var replaceWithICloudTitle: String {
+        String(localized: "Replace This Device's Library?", comment: "Alert title when turning on iCloud Sync and iCloud already has a library")
+    }
+
+    static var replaceWithICloudMessage: String {
+        String(
+            localized: "iCloud already has a library. The items, sections, shopping list, and saved lists on this device will be replaced with it.",
+            comment: "Alert message when turning on iCloud Sync and iCloud already has a library"
+        )
+    }
+
+    static var backUpFirst: String {
+        String(localized: "Back Up First", comment: "Alert button: cancel turning on sync and export a backup")
+    }
+
+    static var couldNotReachICloudTitle: String {
+        String(localized: "Couldn't Reach iCloud", comment: "Alert title when checking iCloud before enabling sync fails")
+    }
+
+    static var couldNotReachICloudMessage: String {
+        String(
+            localized: "Check your internet connection and try turning on iCloud Sync again.",
+            comment: "Alert message when checking iCloud before enabling sync fails"
+        )
+    }
+
     static var iCloudStatusChecking: String {
         String(localized: "Checking iCloud…", comment: "iCloud Sync status: checking account")
     }

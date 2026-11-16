@@ -4,9 +4,11 @@ import os
 
 /// iCloud sync for the active language's library (household sync plan, Phase 1).
 ///
-/// **1b (this step): upload only.** Turning on **iCloud Sync** uploads every item, section,
-/// shopping-list entry, and saved list into the `Household` zone of the user's private database.
-/// Receiving changes (1c) and sending each edit as it happens (1d) come next.
+/// **1b:** turning on **iCloud Sync** uploads every item, section, shopping-list entry, and saved
+/// list into the `Household` zone of the user's private database.
+/// **1c:** before uploading, check whether iCloud already has a library; if so, ask, then replace
+/// this device's library with a full download. Later downloaded changes are merged in.
+/// Sending each edit as it happens comes in 1d.
 ///
 /// Built on `CKSyncEngine`, which batches, retries network/account problems, and remembers what is
 /// still unsent (its state is saved to disk on every `.stateUpdate`). Conflicts follow the plan's
@@ -27,6 +29,18 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
     @Published private(set) var status: Status = .off
 
+    /// Questions/notices Settings shows while turning sync on.
+    enum EnablePrompt: Identifiable {
+        /// iCloud already has a library: replace this device's library with it?
+        case replaceLocalLibrary
+        /// Couldn't reach iCloud to check; the switch was turned back off.
+        case couldNotReachICloud
+
+        var id: Self { self }
+    }
+
+    @Published var enablePrompt: EnablePrompt?
+
     /// All household data lives in one custom zone (Phase 2 shares this whole zone).
     static let zoneID = CKRecordZone.ID(zoneName: "Household", ownerName: CKCurrentUserDefaultName)
 
@@ -45,6 +59,11 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     private var engine: CKSyncEngine?
     /// Last known server "system fields" per record name, so updates aren't rejected as conflicts.
     private var systemFieldsByRecordName: [String: Data] = [:]
+    /// True while downloading everything to replace this device's library (1c). Fetched records
+    /// are held in `replacementBuffer` and applied in one go when the fetch finishes, so the UI
+    /// never shows a half-downloaded library.
+    private var isReplacingLocalLibrary = false
+    private var replacementBuffer: [CKRecord] = []
 
     private init() {}
 
@@ -62,11 +81,74 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     /// Called when the **iCloud Sync** switch changes.
     func setEnabled(_ enabled: Bool) {
         if enabled {
-            startEngine()
-            queueFullUpload()
+            guard engine == nil, enablePrompt == nil else { return }
+            status = .syncing
+            Task { await checkICloudThenEnable() }
         } else {
+            enablePrompt = nil
+            isReplacingLocalLibrary = false
+            replacementBuffer = []
             stopEngine()
         }
+    }
+
+    /// Turning sync on: upload if iCloud is empty, otherwise ask before replacing this device's library.
+    private func checkICloudThenEnable() async {
+        do {
+            if try await iCloudHasLibrary() {
+                enablePrompt = .replaceLocalLibrary
+            } else {
+                startEngine()
+                queueFullUpload()
+            }
+        } catch {
+            logger.error("Couldn't check iCloud before enabling sync: \(error.localizedDescription)")
+            enablePrompt = .couldNotReachICloud
+            turnSwitchOff()
+        }
+    }
+
+    /// The single `HouseholdInfo` record exists once any device has uploaded a library.
+    private func iCloudHasLibrary() async throws -> Bool {
+        let database = CKContainer(identifier: AppICloudSync.containerIdentifier).privateCloudDatabase
+        let infoID = Self.recordID(Self.recordName(RecordType.householdInfo, RecordType.householdInfoName))
+        do {
+            _ = try await database.record(for: infoID)
+            return true
+        } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
+            return false
+        }
+    }
+
+    /// "Replace" in the prompt: forget this device's sync history and download everything.
+    func confirmReplaceLocalLibrary() {
+        enablePrompt = nil
+        Self.deleteLocalSyncFiles()
+        systemFieldsByRecordName = [:]
+        isReplacingLocalLibrary = true
+        replacementBuffer = []
+        startEngine()
+        status = .syncing
+        Task {
+            do {
+                try await engine?.fetchChanges()
+            } catch {
+                logger.error("Initial download failed: \(error.localizedDescription)")
+                // The engine keeps retrying on its own; the buffer applies when a fetch completes.
+            }
+        }
+    }
+
+    /// "Cancel" (or "Back Up First") in the prompt: leave everything as it was.
+    func cancelEnable() {
+        enablePrompt = nil
+        turnSwitchOff()
+    }
+
+    private func turnSwitchOff() {
+        // ShoplisterApp observes this key and calls `setEnabled(false)`.
+        UserDefaults.standard.set(false, forKey: AppICloudSync.storageKey)
+        status = .off
     }
 
     private func startEngine() {
@@ -116,14 +198,19 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             Self.saveEngineState(update.stateSerialization)
         case .accountChange(let change):
             logger.info("iCloud account changed: \(String(describing: change))")
-        case .willSendChanges:
+        case .willSendChanges, .willFetchChanges:
             status = .syncing
         case .sentRecordZoneChanges(let sent):
             handleSentRecordZoneChanges(sent, syncEngine: syncEngine)
         case .didSendChanges:
             updateStatusFromPendingChanges()
+        case .fetchedRecordZoneChanges(let fetched):
+            handleFetchedRecordZoneChanges(fetched)
+        case .didFetchChanges:
+            finishReplacingLocalLibraryIfNeeded()
+            updateStatusFromPendingChanges()
         default:
-            // Fetching (1c) and database-level events aren't used yet.
+            // Database-level events (e.g. zone deleted elsewhere) are handled in 1e.
             break
         }
     }
@@ -159,6 +246,125 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         guard !changes.isEmpty else { return nil }
         let records = recordsByID
         return await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { records[$0] }
+    }
+
+    // MARK: - Fetched changes
+
+    private func handleFetchedRecordZoneChanges(_ fetched: CKSyncEngine.Event.FetchedRecordZoneChanges) {
+        let records = fetched.modifications.map(\.record)
+        for record in records {
+            systemFieldsByRecordName[record.recordID.recordName] = Self.encodeSystemFields(of: record)
+        }
+        for deletion in fetched.deletions {
+            systemFieldsByRecordName[deletion.recordID.recordName] = nil
+        }
+        Self.saveSystemFields(systemFieldsByRecordName)
+
+        if isReplacingLocalLibrary {
+            replacementBuffer += records
+            return
+        }
+        var changes = Self.libraryChanges(from: records)
+        for deletion in fetched.deletions {
+            Self.addDeletion(recordName: deletion.recordID.recordName, to: &changes)
+        }
+        store?.applySyncedChanges(changes, replacingActiveLibrary: false)
+    }
+
+    /// Applies the full download in one go once the first complete fetch finishes.
+    private func finishReplacingLocalLibraryIfNeeded() {
+        guard isReplacingLocalLibrary, let store else { return }
+        // Safety: every uploaded library has a HouseholdInfo record. If a fetch "finished" without it
+        // (interrupted or partial), keep waiting rather than replacing the library with nothing.
+        guard replacementBuffer.contains(where: { $0.recordType == RecordType.householdInfo }) else {
+            logger.info("Fetch finished without HouseholdInfo; still waiting for the full download")
+            return
+        }
+        isReplacingLocalLibrary = false
+        let records = replacementBuffer
+        replacementBuffer = []
+
+        // Match iCloud's library language first, so the download goes into the right library.
+        if let info = records.first(where: { $0.recordType == RecordType.householdInfo }),
+           let language = info["libraryLanguage"] as? String,
+           AppContentLanguage(rawValue: language) != nil,
+           UserDefaults.standard.string(forKey: AppContentLanguage.storageKey) != language
+        {
+            UserDefaults.standard.set(language, forKey: AppContentLanguage.storageKey)
+            store.applyContentLanguageFromUserDefaults()
+        }
+        store.applySyncedChanges(Self.libraryChanges(from: records), replacingActiveLibrary: true)
+        logger.info("Replaced local library with \(records.count) records from iCloud")
+    }
+
+    // MARK: - CKRecords → local objects
+
+    private static func libraryChanges(from records: [CKRecord]) -> GroceryStore.SyncedLibraryChanges {
+        var changes = GroceryStore.SyncedLibraryChanges()
+        for record in records {
+            guard let parsed = parseRecordName(record.recordID.recordName),
+                  let uuid = UUID(uuidString: parsed.id) else { continue }
+            switch record.recordType {
+            case RecordType.item:
+                guard let name = record["name"] as? String,
+                      let inventoryTagID = (record["inventoryTagID"] as? String).flatMap(UUID.init(uuidString:)),
+                      let shoppingTagID = (record["shoppingTagID"] as? String).flatMap(UUID.init(uuidString:))
+                else { continue }
+                changes.items.append(GroceryItem(
+                    id: uuid,
+                    name: name,
+                    inventoryTagID: inventoryTagID,
+                    shoppingTagID: shoppingTagID,
+                    sortOrder: (record["sortOrder"] as? Int) ?? 0,
+                    hasImage: ((record["hasImage"] as? Int) ?? 0) != 0
+                ))
+            case RecordType.section:
+                guard let kind = (record["kind"] as? String).flatMap(Tag.Kind.init(rawValue:)),
+                      let title = record["title"] as? String else { continue }
+                changes.tags.append(Tag(
+                    id: uuid,
+                    kind: kind,
+                    title: title,
+                    sortOrder: (record["sortOrder"] as? Int) ?? 0
+                ))
+            case RecordType.shoppingEntry:
+                guard let itemID = (record["itemID"] as? String).flatMap(UUID.init(uuidString:)) else { continue }
+                changes.shoppingEntries.append(ShoppingEntry(
+                    id: uuid,
+                    itemID: itemID,
+                    quantity: (record["quantity"] as? Int) ?? 1,
+                    isChecked: ((record["isChecked"] as? Int) ?? 0) != 0,
+                    addedAt: (record["addedAt"] as? Date) ?? Date()
+                ))
+            case RecordType.savedList:
+                guard let name = record["name"] as? String,
+                      let linesData = record["lines"] as? Data,
+                      let lines = try? JSONDecoder().decode([RecipeLine].self, from: linesData)
+                else { continue }
+                changes.recipes.append(Recipe(
+                    id: uuid,
+                    name: name,
+                    sortOrder: (record["sortOrder"] as? Int) ?? 0,
+                    lines: lines
+                ))
+            default:
+                // HouseholdInfo is handled separately.
+                continue
+            }
+        }
+        return changes
+    }
+
+    private static func addDeletion(recordName: String, to changes: inout GroceryStore.SyncedLibraryChanges) {
+        guard let parsed = parseRecordName(recordName),
+              let uuid = UUID(uuidString: parsed.id) else { return }
+        switch parsed.type {
+        case RecordType.item: changes.deletedItemIDs.insert(uuid)
+        case RecordType.section: changes.deletedTagIDs.insert(uuid)
+        case RecordType.shoppingEntry: changes.deletedShoppingEntryIDs.insert(uuid)
+        case RecordType.savedList: changes.deletedRecipeIDs.insert(uuid)
+        default: break
+        }
     }
 
     // MARK: - Sent changes
@@ -214,7 +420,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             status = .off
             return
         }
-        if status == .failed { return }
+        if status == .failed || isReplacingLocalLibrary { return }
         status = engine.state.pendingRecordZoneChanges.isEmpty
             && engine.state.pendingDatabaseChanges.isEmpty ? .upToDate : .syncing
     }
@@ -338,6 +544,12 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     private static func saveEngineState(_ state: CKSyncEngine.State.Serialization) {
         guard let data = try? JSONEncoder().encode(state) else { return }
         try? data.write(to: engineStateURL, options: [.atomic])
+    }
+
+    /// Forget this device's sync history (engine state + record stamps) before a fresh full download.
+    private static func deleteLocalSyncFiles() {
+        try? FileManager.default.removeItem(at: engineStateURL)
+        try? FileManager.default.removeItem(at: systemFieldsURL)
     }
 
     private static func loadSystemFields() -> [String: Data] {

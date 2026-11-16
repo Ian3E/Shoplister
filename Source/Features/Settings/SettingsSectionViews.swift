@@ -187,6 +187,43 @@ struct SettingsItemLibraryView: View {
             allowsMultipleSelection: false,
             onCompletion: handleImportFilePickerResult
         )
+        // Turning on iCloud Sync when iCloud already has a library (Phase 1c).
+        .alert(
+            LocalizedCopy.replaceWithICloudTitle,
+            isPresented: Binding(
+                get: { sync.enablePrompt == .replaceLocalLibrary },
+                set: { _ in }
+            )
+        ) {
+            Button(LocalizedCopy.replace, role: .destructive) {
+                sync.confirmReplaceLocalLibrary()
+            }
+            Button(LocalizedCopy.backUpFirst) {
+                sync.cancelEnable()
+                // Let this alert finish dismissing before presenting the export one.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    isPresentingExportConfirm = true
+                }
+            }
+            Button(LocalizedCopy.cancel, role: .cancel) {
+                sync.cancelEnable()
+            }
+        } message: {
+            Text(LocalizedCopy.replaceWithICloudMessage)
+        }
+        .alert(
+            LocalizedCopy.couldNotReachICloudTitle,
+            isPresented: Binding(
+                get: { sync.enablePrompt == .couldNotReachICloud },
+                set: { if !$0 { sync.enablePrompt = nil } }
+            )
+        ) {
+            Button(LocalizedCopy.ok, role: .cancel) {
+                sync.enablePrompt = nil
+            }
+        } message: {
+            Text(LocalizedCopy.couldNotReachICloudMessage)
+        }
     }
 
     private var catalogLanguage: AppContentLanguage {

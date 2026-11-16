@@ -4,6 +4,17 @@
     "" : {
 
     },
+    "Back Up First" : {
+      "comment" : "Alert button: cancel turning on sync and export a backup",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "גיבוי תחילה"
+          }
+        }
+      }
+    },
     "Checking iCloud…" : {
       "comment" : "iCloud Sync status: checking account",
       "localizations" : {
@@ -15,6 +26,17 @@
         }
       }
     },
+    "Check your internet connection and try turning on iCloud Sync again." : {
+      "comment" : "Alert message when checking iCloud before enabling sync fails",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "בדקו את החיבור לאינטרנט ונסו להפעיל שוב את סנכרון iCloud."
+          }
+        }
+      }
+    },
     "Couldn't check iCloud. Try again later." : {
       "comment" : "iCloud Sync status: could not determine",
       "localizations" : {
@@ -22,6 +44,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "לא ניתן לבדוק את iCloud. נסו שוב מאוחר יותר."
+          }
+        }
+      }
+    },
+    "Couldn't Reach iCloud" : {
+      "comment" : "Alert title when checking iCloud before enabling sync fails",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ניתן להתחבר ל-iCloud"
+          }
+        }
+      }
+    },
+    "iCloud already has a library. The items, sections, shopping list, and saved lists on this device will be replaced with it." : {
+      "comment" : "Alert message when turning on iCloud Sync and iCloud already has a library",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כבר קיימת ספרייה ב-iCloud. הפריטים, הקבוצות, רשימת הקניות והרשימות השמורות במכשיר זה יוחלפו בה."
           }
         }
       }
@@ -88,6 +132,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "״[home_sections]״ חייב לכלול לפחות קבוצה אחת (כולל ברירת המחדל ״Undefined״ / ״לא מוגדר״)."
+          }
+        }
+      }
+    },
+    "Replace This Device's Library?" : {
+      "comment" : "Alert title when turning on iCloud Sync and iCloud already has a library",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "להחליף את הספרייה במכשיר זה?"
           }
         }
       }
