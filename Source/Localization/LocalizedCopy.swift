@@ -477,6 +477,21 @@ enum LocalizedCopy {
         )
     }
 
+    static var syncStatusSyncing: String {
+        String(localized: "Syncing…", comment: "iCloud Sync status: sending changes")
+    }
+
+    static var syncStatusUpToDate: String {
+        String(localized: "Up to date", comment: "iCloud Sync status: everything sent")
+    }
+
+    static var syncStatusFailed: String {
+        String(
+            localized: "Some changes couldn't sync. Try turning iCloud Sync off and on again.",
+            comment: "iCloud Sync status: a send failed permanently"
+        )
+    }
+
     static var iCloudStatusChecking: String {
         String(localized: "Checking iCloud…", comment: "iCloud Sync status: checking account")
     }

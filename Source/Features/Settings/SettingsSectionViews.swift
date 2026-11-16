@@ -76,6 +76,7 @@ struct SettingsItemLibraryView: View {
     @EnvironmentObject private var store: GroceryStore
     @AppStorage(AppICloudSync.storageKey) private var iCloudSyncEnabled: Bool = false
     @StateObject private var iCloudAccount = ICloudAccountMonitor()
+    @ObservedObject private var sync = SyncService.shared
 
     @AppStorage(AppContentLanguage.storageKey) private var catalogLanguageRaw: String = AppContentLanguage.english.rawValue
 
@@ -90,10 +91,17 @@ struct SettingsItemLibraryView: View {
     @State private var backupErrorMessage: String?
     @State private var backupSuccessMessage: String?
 
-    /// Status line under the switch; `nil` when iCloud is ready (the footer description is enough).
+    /// Status line under the switch: why iCloud isn't ready, or (when it is and sync is on) sync progress.
     private var iCloudStatusText: String? {
         switch iCloudAccount.status {
-        case .available: return nil
+        case .available:
+            guard iCloudSyncEnabled else { return nil }
+            switch sync.status {
+            case .off: return nil
+            case .syncing: return LocalizedCopy.syncStatusSyncing
+            case .upToDate: return LocalizedCopy.syncStatusUpToDate
+            case .failed: return LocalizedCopy.syncStatusFailed
+            }
         case .checking: return LocalizedCopy.iCloudStatusChecking
         case .noAccount: return LocalizedCopy.iCloudStatusNoAccount
         case .restricted: return LocalizedCopy.iCloudStatusRestricted

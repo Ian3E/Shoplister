@@ -89,6 +89,7 @@ struct ShoplisterApp: App {
     @AppStorage(AppTheme.customColorStorageKey) private var customColorHex: String = AppTheme.defaultCustomColorHex
     @AppStorage(AppAutoLock.disableAutoLockStorageKey) private var disableAutoLock: Bool = false
     @AppStorage(AppShoppingBadgeUnchecked.storageKey) private var showUncheckedCountAppBadge: Bool = false
+    @AppStorage(AppICloudSync.storageKey) private var iCloudSyncEnabled: Bool = false
 
     var body: some Scene {
         WindowGroup {
@@ -102,6 +103,7 @@ struct ShoplisterApp: App {
                     AppTextSize.migrateStoredRawValueIfNeeded(&textSizeRaw)
                     store.mergeShareExtensionShoppingOpsIfNeeded()
                     syncShoppingIconBadge()
+                    SyncService.shared.attach(store: store)
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     store.mergeShareExtensionShoppingOpsIfNeeded()
@@ -110,6 +112,9 @@ struct ShoplisterApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: .shareExtensionPendingShoppingOpsEnqueued)) { _ in
                     store.mergeShareExtensionShoppingOpsIfNeeded()
                     syncShoppingIconBadge()
+                }
+                .onChange(of: iCloudSyncEnabled) { _, enabled in
+                    SyncService.shared.setEnabled(enabled)
                 }
                 .onChange(of: disableAutoLock) { _, _ in
                     AppAutoLock.applyFromUserDefaults()

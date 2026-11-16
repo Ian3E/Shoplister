@@ -103,6 +103,39 @@
         }
       }
     },
+    "Some changes couldn't sync. Try turning iCloud Sync off and on again." : {
+      "comment" : "iCloud Sync status: a send failed permanently",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "חלק מהשינויים לא סונכרנו. נסו לכבות ולהפעיל מחדש את סנכרון iCloud."
+          }
+        }
+      }
+    },
+    "Syncing…" : {
+      "comment" : "iCloud Sync status: sending changes",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "מסנכרן…"
+          }
+        }
+      }
+    },
+    "Up to date" : {
+      "comment" : "iCloud Sync status: everything sent",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "מעודכן"
+          }
+        }
+      }
+    },
     "“%@” will be removed from your library and shopping list." : {
       "comment" : "Delete item confirmation message; %@ is the item name",
       "localizations" : {

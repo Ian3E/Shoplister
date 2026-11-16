@@ -37,6 +37,7 @@
 		AA00001D000000000000001D /* AppHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000001D /* AppHaptics.swift */; };
 		AA00000F010000000000F001 /* LibraryFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000F01 /* LibraryFileStore.swift */; };
 		AA00000F020000000000F002 /* ICloudAccountMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000F02 /* ICloudAccountMonitor.swift */; };
+		AA00000F030000000000F003 /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000F03 /* SyncService.swift */; };
 		AA00001E000000000000001E /* LibraryBackupCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000001E /* LibraryBackupCodec.swift */; };
 		AA00001F000000000000001F /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000101000000000000001F /* ActivityView.swift */; };
 		AA0000200000000000000020 /* AppAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000020 /* AppAppearance.swift */; };
@@ -157,6 +158,7 @@
 		AA000101000000000000001D /* AppHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHaptics.swift; sourceTree = "<group>"; };
 		AA0001010000000000000F01 /* LibraryFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryFileStore.swift; sourceTree = "<group>"; };
 		AA0001010000000000000F02 /* ICloudAccountMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudAccountMonitor.swift; sourceTree = "<group>"; };
+		AA0001010000000000000F03 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
 		AA000101000000000000001E /* LibraryBackupCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryBackupCodec.swift; sourceTree = "<group>"; };
 		AA000101000000000000001F /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		AA0001010000000000000020 /* AppAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAppearance.swift; sourceTree = "<group>"; };
@@ -450,6 +452,7 @@
 				AA0001010000000000000070 /* LibraryBackupArchive.swift */,
 				AA0001010000000000000F01 /* LibraryFileStore.swift */,
 				AA0001010000000000000F02 /* ICloudAccountMonitor.swift */,
+				AA0001010000000000000F03 /* SyncService.swift */,
 				AA0001010000000000000035 /* ShareExtensionAppGroupSupport.swift */,
 				AA0001010000000000000045 /* ShoppingIconBadge.swift */,
 			);
@@ -594,6 +597,7 @@
 				AA0000700000000000000070 /* LibraryBackupArchive.swift in Sources */,
 				AA00000F010000000000F001 /* LibraryFileStore.swift in Sources */,
 				AA00000F020000000000F002 /* ICloudAccountMonitor.swift in Sources */,
+				AA00000F030000000000F003 /* SyncService.swift in Sources */,
 				AA00001F000000000000001F /* ActivityView.swift in Sources */,
 				AA0000180000000000000018 /* BilingualSeedCatalog.swift in Sources */,
 				AA0000190000000000000019 /* ItemImageStore.swift in Sources */,
