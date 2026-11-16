@@ -1,5 +1,6 @@
 import CloudKit
 import Foundation
+import Network
 import os
 import SwiftUI
 import UIKit
@@ -12,6 +13,9 @@ import UIKit
 /// this device's library with a full download. Later downloaded changes are merged in.
 /// **1d:** every user edit is reported by `GroceryStore.onLibraryChange` and queued for upload;
 /// other devices learn about it via CloudKit push (plus a fetch whenever the app comes to the front).
+/// **1e:** whole-library operations (language change, Clear Library, Import) sync like big edits; a
+/// language change from another device triggers a fresh full download. Signing out of iCloud or
+/// iCloud data being deleted turns sync off and keeps the local lists.
 ///
 /// Built on `CKSyncEngine`, which batches, retries network/account problems, and remembers what is
 /// still unsent (its state is saved to disk on every `.stateUpdate`). Conflicts follow the plan's
@@ -26,6 +30,8 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         case off
         case syncing
         case upToDate
+        /// Unsent changes, but no network connection; they send automatically later.
+        case waitingForNetwork
         /// A send failed for a reason the engine won't retry by itself.
         case failed
     }
@@ -38,6 +44,10 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         case replaceLocalLibrary
         /// Couldn't reach iCloud to check; the switch was turned back off.
         case couldNotReachICloud
+        /// Signed out of iCloud / switched Apple ID; sync was turned off, local lists kept.
+        case iCloudAccountChanged
+        /// Shoplister's data was deleted from iCloud; sync was turned off, local lists kept.
+        case iCloudDataDeleted
 
         var id: Self { self }
     }
@@ -67,8 +77,19 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     /// never shows a half-downloaded library.
     private var isReplacingLocalLibrary = false
     private var replacementBuffer: [CKRecord] = []
+    private let pathMonitor = NWPathMonitor()
+    private var isNetworkAvailable = true
 
-    private init() {}
+    private init() {
+        pathMonitor.pathUpdateHandler = { [weak self] path in
+            let available = path.status == .satisfied
+            Task { @MainActor in
+                self?.isNetworkAvailable = available
+                self?.updateStatusFromPendingChanges()
+            }
+        }
+        pathMonitor.start(queue: DispatchQueue(label: "com.byteloft.apps.shoplister.sync.network"))
+    }
 
     // MARK: - Lifecycle (called from ShoplisterApp)
 
@@ -94,7 +115,10 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             status = .syncing
             Task { await checkICloudThenEnable() }
         } else {
-            enablePrompt = nil
+            // Keep notices that explain why sync turned itself off; only drop an unanswered question.
+            if enablePrompt == .replaceLocalLibrary {
+                enablePrompt = nil
+            }
             isReplacingLocalLibrary = false
             replacementBuffer = []
             stopEngine()
@@ -132,15 +156,26 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     /// "Replace" in the prompt: forget this device's sync history and download everything.
     func confirmReplaceLocalLibrary() {
         enablePrompt = nil
+        restartWithFullDownload()
+    }
+
+    /// Fresh engine with no history: fetches the whole zone into `replacementBuffer`, then
+    /// `finishReplacingLocalLibraryIfNeeded` swaps the active library in one step.
+    private func restartWithFullDownload() {
+        stopEngine()
         Self.deleteLocalSyncFiles()
         systemFieldsByRecordName = [:]
         isReplacingLocalLibrary = true
         replacementBuffer = []
         startEngine()
         status = .syncing
-        Task {
+        guard let engine else { return }
+        let logger = self.logger
+        // Detached: this can run from inside a CKSyncEngine delegate callback (a language change
+        // from another device), and CloudKit forbids awaiting the engine from that context.
+        Task.detached {
             do {
-                try await engine?.fetchChanges()
+                try await engine.fetchChanges()
             } catch {
                 logger.error("Initial download failed: \(error.localizedDescription)")
                 // The engine keeps retrying on its own; the buffer applies when a fetch completes.
@@ -151,6 +186,18 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     /// "Cancel" (or "Back Up First") in the prompt: leave everything as it was.
     func cancelEnable() {
         enablePrompt = nil
+        turnSwitchOff()
+    }
+
+    /// Sync can't continue (account gone or iCloud data deleted): forget this device's sync history,
+    /// keep the lists, explain why, and turn the switch off.
+    private func turnOffKeepingLocalLists(notice: EnablePrompt) {
+        stopEngine()
+        Self.deleteLocalSyncFiles()
+        systemFieldsByRecordName = [:]
+        isReplacingLocalLibrary = false
+        replacementBuffer = []
+        enablePrompt = notice
         turnSwitchOff()
     }
 
@@ -181,7 +228,8 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         }
         self.engine = nil
         status = .off
-        Task { await engine.cancelOperations() }
+        // Detached for the same reason as `restartWithFullDownload` (may run inside a delegate callback).
+        Task.detached { await engine.cancelOperations() }
         logger.info("Sync engine stopped")
     }
 
@@ -213,16 +261,20 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             + ids(RecordType.section, change.deletedTagIDs)
             + ids(RecordType.shoppingEntry, change.deletedShoppingEntryIDs)
             + ids(RecordType.savedList, change.deletedRecipeIDs)
-        engine.state.add(pendingRecordZoneChanges: saves.map { .saveRecord($0) } + deletes.map { .deleteRecord($0) })
-        if status != .failed {
-            status = .syncing
+        var changes = saves.map { CKSyncEngine.PendingRecordZoneChange.saveRecord($0) }
+            + deletes.map { CKSyncEngine.PendingRecordZoneChange.deleteRecord($0) }
+        if change.householdInfoChanged {
+            changes.append(.saveRecord(Self.recordID(Self.recordName(RecordType.householdInfo, RecordType.householdInfoName))))
         }
+        engine.state.add(pendingRecordZoneChanges: changes)
+        updateStatusFromPendingChanges()
     }
 
     /// Checks iCloud for other devices' changes now (called when the app comes to the front).
     func fetchNow() {
         guard let engine else { return }
-        Task {
+        let logger = self.logger
+        Task.detached {
             do {
                 try await engine.fetchChanges()
             } catch {
@@ -241,6 +293,19 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             Self.saveEngineState(update.stateSerialization)
         case .accountChange(let change):
             logger.info("iCloud account changed: \(String(describing: change))")
+            switch change.changeType {
+            case .signIn:
+                break
+            case .signOut, .switchAccounts:
+                turnOffKeepingLocalLists(notice: .iCloudAccountChanged)
+            @unknown default:
+                break
+            }
+        case .fetchedDatabaseChanges(let changes):
+            if changes.deletions.contains(where: { $0.zoneID.zoneName == Self.zoneID.zoneName }) {
+                logger.info("Household zone was deleted from iCloud")
+                turnOffKeepingLocalLists(notice: .iCloudDataDeleted)
+            }
         case .willSendChanges, .willFetchChanges:
             status = .syncing
         case .sentRecordZoneChanges(let sent):
@@ -302,6 +367,25 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
                 return nil
             }
         )
+        let householdInfoName = Self.recordName(RecordType.householdInfo, RecordType.householdInfoName)
+
+        // Another device changed the library language (Phase 1e): do what it did — reseed, switch
+        // language — then download the new library in full rather than merging piece by piece.
+        // Skipped if this device's own language change hasn't uploaded yet.
+        if !isReplacingLocalLibrary,
+           !pendingSaveNames.contains(householdInfoName),
+           let info = fetched.modifications.map(\.record).first(where: { $0.recordType == RecordType.householdInfo }),
+           let languageRaw = info["libraryLanguage"] as? String,
+           AppContentLanguage(rawValue: languageRaw) != nil,
+           languageRaw != (UserDefaults.standard.string(forKey: AppContentLanguage.storageKey) ?? AppContentLanguage.english.rawValue)
+        {
+            logger.info("Library language changed on another device to \(languageRaw)")
+            store?.resetLibraryToInitialSeed()
+            UserDefaults.standard.set(languageRaw, forKey: AppContentLanguage.storageKey)
+            store?.applyContentLanguageFromUserDefaults()
+            restartWithFullDownload()
+            return
+        }
         let records = fetched.modifications.map(\.record)
             .filter { !pendingSaveNames.contains($0.recordID.recordName) }
         for record in records {
@@ -457,8 +541,10 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
                 // Our stored stamp points at a record the server no longer has; upload it fresh.
                 systemFieldsByRecordName[recordID.recordName] = nil
                 retry.append(.saveRecord(recordID))
-            case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-                 .notAuthenticated, .operationCancelled, .requestRateLimited:
+            case .networkFailure, .networkUnavailable:
+                // The engine retries on its own once the connection is back.
+                isNetworkAvailable = false
+            case .zoneBusy, .serviceUnavailable, .notAuthenticated, .operationCancelled, .requestRateLimited:
                 // The engine retries these on its own.
                 break
             default:
@@ -472,6 +558,8 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         Self.saveSystemFields(systemFieldsByRecordName)
         if hadPermanentFailure {
             status = .failed
+        } else {
+            updateStatusFromPendingChanges()
         }
     }
 
@@ -481,8 +569,13 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             return
         }
         if status == .failed || isReplacingLocalLibrary { return }
-        status = engine.state.pendingRecordZoneChanges.isEmpty
-            && engine.state.pendingDatabaseChanges.isEmpty ? .upToDate : .syncing
+        let hasPending = !engine.state.pendingRecordZoneChanges.isEmpty
+            || !engine.state.pendingDatabaseChanges.isEmpty
+        if !hasPending {
+            status = .upToDate
+        } else {
+            status = isNetworkAvailable ? .syncing : .waitingForNetwork
+        }
     }
 
     // MARK: - Local objects → CKRecords

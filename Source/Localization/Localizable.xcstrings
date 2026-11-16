@@ -103,6 +103,28 @@
         }
       }
     },
+    "iCloud Sync is on, so this also applies to your other devices." : {
+      "comment" : "Extra line in destructive library alerts while iCloud Sync is on",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "סנכרון iCloud מופעל, ולכן הפעולה תחול גם על המכשירים האחרים שלכם."
+          }
+        }
+      }
+    },
+    "iCloud Sync Turned Off" : {
+      "comment" : "Alert title when sync turns itself off",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "סנכרון iCloud כובה"
+          }
+        }
+      }
+    },
     "Keep your library and shopping list in sync on all your devices signed in to the same Apple ID." : {
       "comment" : "Footer under iCloud Sync toggle",
       "localizations" : {
@@ -147,6 +169,17 @@
         }
       }
     },
+    "Shoplister's data was removed from iCloud. Your lists are still on this device. Turn on iCloud Sync again to upload them." : {
+      "comment" : "Alert message: sync turned off after the app's iCloud data was deleted",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הנתונים של Shoplister הוסרו מ-iCloud. הרשימות שלכם עדיין במכשיר זה. הפעילו שוב את סנכרון iCloud כדי להעלות אותן."
+          }
+        }
+      }
+    },
     "“[shopping_sections]” must list at least one section." : {
       "comment" : "Backup import error when shopping sections list is empty",
       "localizations" : {
@@ -187,6 +220,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "מעודכן"
+          }
+        }
+      }
+    },
+    "Waiting for a connection. Changes will sync automatically." : {
+      "comment" : "iCloud Sync status: unsent changes, no network",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ממתין לחיבור. השינויים יסונכרנו אוטומטית."
           }
         }
       }
@@ -3414,6 +3458,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "רשימת הקניות מסודרת לפי קבוצות סופר."
+          }
+        }
+      }
+    },
+    "You signed out of iCloud or switched accounts. Your lists are still on this device. Turn on iCloud Sync again to resume." : {
+      "comment" : "Alert message: sync turned off after iCloud sign-out or account switch",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "התנתקתם מ-iCloud או החלפתם חשבון. הרשימות שלכם עדיין במכשיר זה. הפעילו שוב את סנכרון iCloud כדי להמשיך."
           }
         }
       }

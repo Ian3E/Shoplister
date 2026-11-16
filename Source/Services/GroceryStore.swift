@@ -497,6 +497,19 @@ final class GroceryStore: ObservableObject {
         canUndoClearChecked = false
     }
 
+    /// Settings → library language (Phase 1e): reseed both libraries, switch language, and report the
+    /// whole swap (old library deleted, new one saved, language record updated) so sync applies it to
+    /// every device.
+    func changeLibraryLanguage(to language: AppContentLanguage) {
+        let before = activeBundle
+        resetLibraryToInitialSeed()
+        UserDefaults.standard.set(language.rawValue, forKey: AppContentLanguage.storageKey)
+        syncPublishedFromActiveContentLanguage()
+        var change = Self.changeSet(from: before, to: activeBundle)
+        change.householdInfoChanged = true
+        deliverLibraryChange(change)
+    }
+
     func resetLibraryToInitialSeed() {
         ItemImageStore.deleteAllStoredImages()
         english = .empty
@@ -511,6 +524,14 @@ final class GroceryStore: ObservableObject {
     }
 
     func clearLibrary(for language: AppContentLanguage) {
+        let reportsChange = language == currentContentLanguage()
+        let before = activeBundle
+        defer {
+            // Phase 1e: sync the cleared active library to other devices.
+            if reportsChange {
+                deliverLibraryChange(Self.changeSet(from: before, to: activeBundle))
+            }
+        }
         switch language {
         case .hebrew:
             clearLibraryContents(in: &hebrew, hebrew: true)
@@ -713,11 +734,13 @@ final class GroceryStore: ObservableObject {
         var deletedShoppingEntryIDs: Set<UUID> = []
         var savedRecipeIDs: Set<UUID> = []
         var deletedRecipeIDs: Set<UUID> = []
+        /// The library language changed (Phase 1e): sync must update the HouseholdInfo record.
+        var householdInfoChanged = false
 
         var isEmpty: Bool {
             savedItemIDs.isEmpty && deletedItemIDs.isEmpty && savedTagIDs.isEmpty && deletedTagIDs.isEmpty
                 && savedShoppingEntryIDs.isEmpty && deletedShoppingEntryIDs.isEmpty
-                && savedRecipeIDs.isEmpty && deletedRecipeIDs.isEmpty
+                && savedRecipeIDs.isEmpty && deletedRecipeIDs.isEmpty && !householdInfoChanged
         }
 
         mutating func merge(_ other: LibraryChangeSet) {
@@ -729,6 +752,7 @@ final class GroceryStore: ObservableObject {
             deletedShoppingEntryIDs.formUnion(other.deletedShoppingEntryIDs)
             savedRecipeIDs.formUnion(other.savedRecipeIDs)
             deletedRecipeIDs.formUnion(other.deletedRecipeIDs)
+            householdInfoChanged = householdInfoChanged || other.householdInfoChanged
         }
     }
 
@@ -750,14 +774,22 @@ final class GroceryStore: ObservableObject {
 
     private func reportLibraryChange(from before: V3Bundle, to after: V3Bundle) {
         guard !isApplyingSyncedChanges else { return }
+        deliverLibraryChange(Self.changeSet(from: before, to: after))
+    }
+
+    private static func changeSet(from before: V3Bundle, to after: V3Bundle) -> LibraryChangeSet {
         var change = LibraryChangeSet()
-        (change.savedItemIDs, change.deletedItemIDs) = Self.diff(before.catalog, after.catalog)
-        (change.savedTagIDs, change.deletedTagIDs) = Self.diff(
+        (change.savedItemIDs, change.deletedItemIDs) = diff(before.catalog, after.catalog)
+        (change.savedTagIDs, change.deletedTagIDs) = diff(
             before.inventoryTags + before.shoppingTags,
             after.inventoryTags + after.shoppingTags
         )
-        (change.savedShoppingEntryIDs, change.deletedShoppingEntryIDs) = Self.diff(before.shopping, after.shopping)
-        (change.savedRecipeIDs, change.deletedRecipeIDs) = Self.diff(before.recipes, after.recipes)
+        (change.savedShoppingEntryIDs, change.deletedShoppingEntryIDs) = diff(before.shopping, after.shopping)
+        (change.savedRecipeIDs, change.deletedRecipeIDs) = diff(before.recipes, after.recipes)
+        return change
+    }
+
+    private func deliverLibraryChange(_ change: LibraryChangeSet) {
         guard !change.isEmpty else { return }
         if let onLibraryChange {
             onLibraryChange(change)
@@ -1476,6 +1508,14 @@ final class GroceryStore: ObservableObject {
     /// Returns the number of recipe ingredient rows skipped because the item name was not in the library.
     @discardableResult
     func importLibraryBackup(from zipURL: URL, into language: AppContentLanguage) throws -> Int {
+        let reportsChange = language == currentContentLanguage()
+        let before = activeBundle
+        defer {
+            // Phase 1e: sync the imported active library to other devices (no-op if import failed early).
+            if reportsChange {
+                deliverLibraryChange(Self.changeSet(from: before, to: activeBundle))
+            }
+        }
         let payload = try LibraryBackupArchive.loadImportPayload(from: zipURL, expectedLanguage: language)
         defer {
             if let imagesDirectoryURL = payload.imagesDirectoryURL {

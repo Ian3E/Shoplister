@@ -518,6 +518,38 @@ enum LocalizedCopy {
         )
     }
 
+    static var syncStatusWaitingForNetwork: String {
+        String(
+            localized: "Waiting for a connection. Changes will sync automatically.",
+            comment: "iCloud Sync status: unsent changes, no network"
+        )
+    }
+
+    static var alsoAppliesToOtherDevices: String {
+        String(
+            localized: "iCloud Sync is on, so this also applies to your other devices.",
+            comment: "Extra line in destructive library alerts while iCloud Sync is on"
+        )
+    }
+
+    static var iCloudSyncTurnedOffTitle: String {
+        String(localized: "iCloud Sync Turned Off", comment: "Alert title when sync turns itself off")
+    }
+
+    static var iCloudAccountChangedMessage: String {
+        String(
+            localized: "You signed out of iCloud or switched accounts. Your lists are still on this device. Turn on iCloud Sync again to resume.",
+            comment: "Alert message: sync turned off after iCloud sign-out or account switch"
+        )
+    }
+
+    static var iCloudDataDeletedMessage: String {
+        String(
+            localized: "Shoplister's data was removed from iCloud. Your lists are still on this device. Turn on iCloud Sync again to upload them.",
+            comment: "Alert message: sync turned off after the app's iCloud data was deleted"
+        )
+    }
+
     static var iCloudStatusChecking: String {
         String(localized: "Checking iCloud…", comment: "iCloud Sync status: checking account")
     }

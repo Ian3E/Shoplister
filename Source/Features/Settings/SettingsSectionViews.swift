@@ -100,6 +100,7 @@ struct SettingsItemLibraryView: View {
             case .off: return nil
             case .syncing: return LocalizedCopy.syncStatusSyncing
             case .upToDate: return LocalizedCopy.syncStatusUpToDate
+            case .waitingForNetwork: return LocalizedCopy.syncStatusWaitingForNetwork
             case .failed: return LocalizedCopy.syncStatusFailed
             }
         case .checking: return LocalizedCopy.iCloudStatusChecking
@@ -176,7 +177,8 @@ struct SettingsItemLibraryView: View {
             onExport: exportLibraryBackup,
             onImport: runPendingImport,
             onClearLibrary: { store.clearLibrary(for: catalogLanguage) },
-            store: store
+            store: store,
+            appliesToOtherDevices: iCloudSyncEnabled
         ))
         .sheet(item: $sharePayload) { payload in
             ActivityView(activityItems: [payload.url])
@@ -223,6 +225,21 @@ struct SettingsItemLibraryView: View {
             }
         } message: {
             Text(LocalizedCopy.couldNotReachICloudMessage)
+        }
+        .alert(
+            LocalizedCopy.iCloudSyncTurnedOffTitle,
+            isPresented: Binding(
+                get: { sync.enablePrompt == .iCloudAccountChanged || sync.enablePrompt == .iCloudDataDeleted },
+                set: { if !$0 { sync.enablePrompt = nil } }
+            )
+        ) {
+            Button(LocalizedCopy.ok, role: .cancel) {
+                sync.enablePrompt = nil
+            }
+        } message: {
+            Text(sync.enablePrompt == .iCloudDataDeleted
+                ? LocalizedCopy.iCloudDataDeletedMessage
+                : LocalizedCopy.iCloudAccountChangedMessage)
         }
     }
 
@@ -648,6 +665,12 @@ private struct SettingsItemLibraryAlertsModifier: ViewModifier {
     let onImport: () -> Void
     let onClearLibrary: () -> Void
     let store: GroceryStore
+    /// iCloud Sync is on: destructive library actions also apply to the user's other devices.
+    var appliesToOtherDevices = false
+
+    private func withSyncNote(_ message: String) -> String {
+        appliesToOtherDevices ? message + "\n\n" + LocalizedCopy.alsoAppliesToOtherDevices : message
+    }
 
     private var pendingLanguageChangePresented: Binding<Bool> {
         Binding(
@@ -679,13 +702,14 @@ private struct SettingsItemLibraryAlertsModifier: ViewModifier {
                 }
                 Button(LocalizedCopy.changeLanguage, role: .destructive) {
                     guard let pending = pendingCatalogLanguageRaw else { return }
-                    store.resetLibraryToInitialSeed()
+                    // Reseeds, switches language, and (with iCloud Sync on) applies it to all devices.
+                    store.changeLibraryLanguage(to: AppContentLanguage(rawValue: pending) ?? .english)
                     catalogLanguageRaw = pending
                     catalogLanguagePickerValue = pending
                     pendingCatalogLanguageRaw = nil
                 }
             } message: {
-                Text(LocalizedCopy.changeLibraryLanguageMessage)
+                Text(withSyncNote(LocalizedCopy.changeLibraryLanguageMessage))
             }
             .alert(LocalizedCopy.export, isPresented: $isPresentingExportConfirm) {
                 Button(LocalizedCopy.cancel, role: .cancel) {}
@@ -697,13 +721,13 @@ private struct SettingsItemLibraryAlertsModifier: ViewModifier {
                 Button(LocalizedCopy.cancel, role: .cancel) { pendingImportURL = nil }
                 Button(LocalizedCopy.replace, role: .destructive, action: onImport)
             } message: {
-                Text(LocalizedCopy.importBackupExplainer)
+                Text(withSyncNote(LocalizedCopy.importBackupExplainer))
             }
             .alert(LocalizedCopy.clearLibraryAlertTitle, isPresented: $isPresentingClearLibraryConfirm) {
                 Button(LocalizedCopy.cancel, role: .cancel) {}
                 Button(LocalizedCopy.clearLibrary, role: .destructive, action: onClearLibrary)
             } message: {
-                Text(LocalizedCopy.clearLibraryAlertMessage)
+                Text(withSyncNote(LocalizedCopy.clearLibraryAlertMessage))
             }
             .alert(LocalizedCopy.backup, isPresented: backupErrorPresented) {
                 Button(LocalizedCopy.done, role: .cancel) { backupErrorMessage = nil }
