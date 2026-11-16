@@ -126,7 +126,18 @@ struct SettingsItemLibraryView: View {
                 }
             }
 
-            if iCloudSyncEnabled, iCloudAccount.status == .available {
+            if iCloudSyncEnabled, iCloudAccount.status == .available, SyncService.isHouseholdMember {
+                Section {
+                    Label(
+                        LocalizedCopy.householdMemberOf(ownerName: SyncService.householdOwnerDisplayName),
+                        systemImage: "person.2"
+                    )
+                } header: {
+                    Text(LocalizedCopy.household)
+                } footer: {
+                    Text(LocalizedCopy.householdMemberFooter)
+                }
+            } else if iCloudSyncEnabled, iCloudAccount.status == .available {
                 Section {
                     Button {
                         Task { await sync.presentHouseholdSharing() }

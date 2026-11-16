@@ -518,6 +518,59 @@ enum LocalizedCopy {
         )
     }
 
+    static var joinHouseholdTitle: String {
+        String(localized: "Join Household?", comment: "Alert title when opening a household invite")
+    }
+
+    static func joinHouseholdMessage(ownerName: String?) -> String {
+        if let ownerName {
+            return String(
+                localized: "\(ownerName) invited you to share Shoplister lists. Joining replaces the lists on this iPhone with the household's lists.",
+                comment: "Join household alert message; %@ is the inviter's name"
+            )
+        }
+        return String(
+            localized: "You've been invited to share Shoplister lists. Joining replaces the lists on this iPhone with the household's lists.",
+            comment: "Join household alert message when the inviter's name is unknown"
+        )
+    }
+
+    static var join: String {
+        String(localized: "Join", comment: "Alert button: join the household")
+    }
+
+    static var joiningHousehold: String {
+        String(localized: "Joining household…", comment: "Progress message while joining a household")
+    }
+
+    static var couldNotJoinHouseholdTitle: String {
+        String(localized: "Couldn't Join Household", comment: "Alert title when accepting an invite fails")
+    }
+
+    static var couldNotJoinHouseholdMessage: String {
+        String(
+            localized: "Make sure you're online, then tap the invite link again.",
+            comment: "Alert message when accepting an invite fails"
+        )
+    }
+
+    static func householdMemberOf(ownerName: String?) -> String {
+        if let ownerName {
+            return String(
+                localized: "Member of \(ownerName)'s household",
+                comment: "Settings Household row for members; %@ is the owner's name"
+            )
+        }
+        return String(localized: "Member of a household", comment: "Settings Household row for members, owner name unknown")
+    }
+
+    static var householdMemberFooter: String {
+        String(
+            localized: "Everyone in the household sees and edits the same lists.",
+            comment: "Settings Household section footer for members"
+        )
+    }
+
     static var household: String {
         String(localized: "Household", comment: "Settings section title for household sharing")
     }

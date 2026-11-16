@@ -168,23 +168,45 @@ struct ShoplisterApp: App {
                 .onChange(of: store.catalog) { _, _ in
                     syncShoppingIconBadge()
                 }
-                // TEMPORARY (Phase 2a test only, English-only on purpose): confirms an invite link
-                // reached the app. Step 2c replaces this with the real join prompt.
                 .alert(
-                    Text(verbatim: "Household invite received"),
+                    LocalizedCopy.joinHouseholdTitle,
                     isPresented: Binding(
                         get: { sync.pendingHouseholdInvite != nil },
                         set: { if !$0 { sync.pendingHouseholdInvite = nil } }
                     )
                 ) {
-                    Button(role: .cancel) {
+                    Button(LocalizedCopy.join, role: .destructive) {
+                        sync.joinHousehold()
+                    }
+                    Button(LocalizedCopy.backUpFirst) {
+                        sync.backUpBeforeJoining()
+                    }
+                    Button(LocalizedCopy.cancel, role: .cancel) {
                         sync.pendingHouseholdInvite = nil
-                    } label: {
-                        Text(verbatim: "OK")
                     }
                 } message: {
-                    Text(verbatim: "From: \(sync.pendingHouseholdInvite?.ownerName ?? "unknown"). Joining comes in step 2c.")
+                    Text(LocalizedCopy.joinHouseholdMessage(ownerName: sync.pendingHouseholdInvite?.ownerName))
                 }
+                .alert(LocalizedCopy.couldNotJoinHouseholdTitle, isPresented: $sync.householdJoinFailed) {
+                    Button(LocalizedCopy.ok, role: .cancel) {}
+                } message: {
+                    Text(LocalizedCopy.couldNotJoinHouseholdMessage)
+                }
+                .overlay(alignment: .top) {
+                    if sync.isJoiningHousehold {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text(LocalizedCopy.joiningHousehold)
+                                .font(.subheadline.weight(.medium))
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .glassEffect(.regular, in: Capsule(style: .continuous))
+                        .padding(.top, 8)
+                        .transition(.opacity)
+                    }
+                }
+                .animation(.default, value: sync.isJoiningHousehold)
         }
     }
 

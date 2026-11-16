@@ -62,6 +62,10 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     }
 
     @Published var pendingHouseholdInvite: HouseholdInvite?
+    /// Accepting an invite and downloading the household's lists.
+    @Published private(set) var isJoiningHousehold = false
+    /// Accepting the invite failed (alert at the app root).
+    @Published var householdJoinFailed = false
 
     /// The household share for this zone, if the owner has created one (Phase 2b).
     @Published private(set) var householdShare: CKShare?
@@ -72,7 +76,45 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     private var householdSharingDelegate: HouseholdSharingDelegate?
 
     /// All household data lives in one custom zone (Phase 2 shares this whole zone).
-    static let zoneID = CKRecordZone.ID(zoneName: "Household", ownerName: CKCurrentUserDefaultName)
+    /// The Household zone this device syncs: its own (owner) or, after joining, the owner's shared zone.
+    static var zoneID: CKRecordZone.ID {
+        CKRecordZone.ID(zoneName: "Household", ownerName: memberZoneOwnerName ?? CKCurrentUserDefaultName)
+    }
+
+    // MARK: Household membership (Phase 2c), persisted so it survives relaunch
+
+    private static let memberZoneOwnerKey = "app.householdMemberZoneOwner"
+    private static let memberOwnerDisplayNameKey = "app.householdMemberOwnerDisplayName"
+
+    /// Set while this device is a member of someone else's household (the owner's iCloud record name).
+    private static var memberZoneOwnerName: String? {
+        get { UserDefaults.standard.string(forKey: memberZoneOwnerKey) }
+        set { UserDefaults.standard.set(newValue, forKey: memberZoneOwnerKey) }
+    }
+
+    /// True while this device syncs someone else's household (shared database) instead of its own.
+    static var isHouseholdMember: Bool { memberZoneOwnerName != nil }
+
+    /// The owner's name for Settings ("Member of Dana's household"), if iCloud provided one.
+    static var householdOwnerDisplayName: String? {
+        UserDefaults.standard.string(forKey: memberOwnerDisplayNameKey)
+    }
+
+    private static func setMembership(ownerZoneName: String?, ownerDisplayName: String?) {
+        memberZoneOwnerName = ownerZoneName
+        UserDefaults.standard.set(ownerDisplayName, forKey: memberOwnerDisplayNameKey)
+    }
+
+    /// Members sync through the shared database; owners (and solo users) through their private one.
+    private var database: CKDatabase {
+        Self.isHouseholdMember ? container.sharedCloudDatabase : container.privateCloudDatabase
+    }
+
+    /// Records/zone events for the zone this device syncs (the shared database can hold other zones).
+    private static func isOurZone(_ id: CKRecordZone.ID) -> Bool {
+        guard id.zoneName == zoneID.zoneName else { return false }
+        return !isHouseholdMember || id.ownerName == zoneID.ownerName
+    }
 
     private enum RecordType {
         static let item = "Item"
@@ -145,8 +187,15 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     /// Turning sync on: upload if iCloud is empty, otherwise ask before replacing this device's library.
     private func checkICloudThenEnable() async {
         do {
-            if try await iCloudHasLibrary() {
+            let hasLibrary = try await iCloudHasLibrary()
+            if hasLibrary {
                 enablePrompt = .replaceLocalLibrary
+            } else if Self.isHouseholdMember {
+                // The household isn't there any more (sharing stopped); go back to this device's own iCloud.
+                // Step 2f adds a proper message for this.
+                Self.setMembership(ownerZoneName: nil, ownerDisplayName: nil)
+                enablePrompt = .iCloudDataDeleted
+                turnSwitchOff()
             } else {
                 startEngine()
                 queueFullUpload()
@@ -160,7 +209,6 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
     /// The single `HouseholdInfo` record exists once any device has uploaded a library.
     private func iCloudHasLibrary() async throws -> Bool {
-        let database = CKContainer(identifier: AppICloudSync.containerIdentifier).privateCloudDatabase
         let infoID = Self.recordID(Self.recordName(RecordType.householdInfo, RecordType.householdInfoName))
         do {
             _ = try await database.record(for: infoID)
@@ -214,6 +262,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         systemFieldsByRecordName = [:]
         isReplacingLocalLibrary = false
         replacementBuffer = []
+        isJoiningHousehold = false
         enablePrompt = notice
         turnSwitchOff()
     }
@@ -227,7 +276,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     private func startEngine() {
         guard engine == nil else { return }
         let configuration = CKSyncEngine.Configuration(
-            database: CKContainer(identifier: AppICloudSync.containerIdentifier).privateCloudDatabase,
+            database: database,
             stateSerialization: Self.loadEngineState(),
             delegate: self
         )
@@ -235,7 +284,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         // Lets CloudKit's silent pushes reach the app so other devices' edits arrive promptly.
         UIApplication.shared.registerForRemoteNotifications()
         updateStatusFromPendingChanges()
-        logger.info("Sync engine started")
+        logger.info("Sync engine started (\(Self.isHouseholdMember ? "household member" : "own iCloud"))")
     }
 
     private func stopEngine() {
@@ -308,7 +357,70 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             PersonNameComponentsFormatter.localizedString(from: $0, style: .default)
         }
         logger.info("Household invite received from \(ownerName ?? "unknown", privacy: .private)")
+        // The owner tapping their own link, or a member re-opening the link: nothing to join.
+        if metadata.participantRole == .owner {
+            logger.info("Ignoring invite: this is the owner's own household")
+            return
+        }
+        if metadata.share.recordID.zoneID.ownerName == Self.memberZoneOwnerName,
+           UserDefaults.standard.bool(forKey: AppICloudSync.storageKey)
+        {
+            logger.info("Ignoring invite: already a member of this household")
+            fetchNow()
+            return
+        }
         pendingHouseholdInvite = HouseholdInvite(metadata: metadata, ownerName: ownerName)
+    }
+
+    /// "Join" in the invite prompt: accept, switch to the owner's shared zone, download everything.
+    func joinHousehold() {
+        guard let invite = pendingHouseholdInvite, !isJoiningHousehold else { return }
+        pendingHouseholdInvite = nil
+        isJoiningHousehold = true
+        Task {
+            do {
+                _ = try await container.accept(invite.metadata)
+            } catch {
+                logger.error("Couldn't accept household invite: \(error.localizedDescription)")
+                isJoiningHousehold = false
+                householdJoinFailed = true
+                return
+            }
+            stopEngine()
+            Self.setMembership(
+                ownerZoneName: invite.metadata.share.recordID.zoneID.ownerName,
+                ownerDisplayName: invite.ownerName
+            )
+            enablePrompt = nil
+            // Turning the switch on here is harmless: the engine below is already running by the time
+            // ShoplisterApp's onChange calls setEnabled(true), so it does nothing.
+            UserDefaults.standard.set(true, forKey: AppICloudSync.storageKey)
+            restartWithFullDownload()
+            logger.info("Joined household; downloading its lists")
+        }
+    }
+
+    /// "Back Up First" in the invite prompt: share a backup file, then ask again.
+    func backUpBeforeJoining() {
+        guard let invite = pendingHouseholdInvite, let store else { return }
+        pendingHouseholdInvite = nil
+        let languageRaw = UserDefaults.standard.string(forKey: AppContentLanguage.storageKey) ?? ""
+        let url: URL
+        do {
+            url = try store.exportLibraryBackup(for: AppContentLanguage(rawValue: languageRaw) ?? .english)
+        } catch {
+            logger.error("Backup before joining failed: \(error.localizedDescription)")
+            pendingHouseholdInvite = invite
+            return
+        }
+        let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        controller.completionWithItemsHandler = { [weak self] _, _, _, _ in
+            Task { @MainActor in self?.pendingHouseholdInvite = invite }
+        }
+        // Let the alert finish dismissing before presenting the share sheet.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            Self.topPresenter()?.present(controller, animated: true)
+        }
     }
 
     // MARK: - Household sharing, owner side (Phase 2b)
@@ -316,11 +428,13 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     private var container: CKContainer { CKContainer(identifier: AppICloudSync.containerIdentifier) }
 
     /// The whole Household zone is shared with one zone-wide share record.
-    private static let householdShareID = CKRecord.ID(recordName: CKRecordNameZoneWideShare, zoneID: zoneID)
+    private static var householdShareID: CKRecord.ID {
+        CKRecord.ID(recordName: CKRecordNameZoneWideShare, zoneID: zoneID)
+    }
 
     /// Settings → Household calls this to show "Invite People" vs "Manage Household".
     func refreshHouseholdShare() async {
-        guard engine != nil else {
+        guard engine != nil, !Self.isHouseholdMember else {
             householdShare = nil
             return
         }
@@ -334,7 +448,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
     /// "Invite People" / "Manage Household": make sure the share exists, then open Apple's sharing screen.
     func presentHouseholdSharing() async {
-        guard engine != nil, !isPreparingHouseholdSharing else { return }
+        guard engine != nil, !Self.isHouseholdMember, !isPreparingHouseholdSharing else { return }
         isPreparingHouseholdSharing = true
         defer { isPreparingHouseholdSharing = false }
         do {
@@ -417,7 +531,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
                 break
             }
         case .fetchedDatabaseChanges(let changes):
-            if changes.deletions.contains(where: { $0.zoneID.zoneName == Self.zoneID.zoneName }) {
+            if changes.deletions.contains(where: { Self.isOurZone($0.zoneID) }) {
                 logger.info("Household zone was deleted from iCloud")
                 turnOffKeepingLocalLists(notice: .iCloudDataDeleted)
             }
@@ -474,6 +588,9 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     // MARK: - Fetched changes
 
     private func handleFetchedRecordZoneChanges(_ fetched: CKSyncEngine.Event.FetchedRecordZoneChanges) {
+        // A member's shared database could hold other zones; only this household's records count.
+        let modifications = fetched.modifications.map(\.record).filter { Self.isOurZone($0.recordID.zoneID) }
+        let fetchedDeletions = fetched.deletions.filter { Self.isOurZone($0.recordID.zoneID) }
         // An unsent local edit is newer than whatever iCloud has; skip that record's download so the
         // edit isn't briefly undone (it uploads next and wins — "last to sync wins").
         let pendingSaveNames: Set<String> = Set(
@@ -489,7 +606,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         // Skipped if this device's own language change hasn't uploaded yet.
         if !isReplacingLocalLibrary,
            !pendingSaveNames.contains(householdInfoName),
-           let info = fetched.modifications.map(\.record).first(where: { $0.recordType == RecordType.householdInfo }),
+           let info = modifications.first(where: { $0.recordType == RecordType.householdInfo }),
            let languageRaw = info["libraryLanguage"] as? String,
            AppContentLanguage(rawValue: languageRaw) != nil,
            languageRaw != (UserDefaults.standard.string(forKey: AppContentLanguage.storageKey) ?? AppContentLanguage.english.rawValue)
@@ -501,12 +618,12 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             restartWithFullDownload()
             return
         }
-        let records = fetched.modifications.map(\.record)
+        let records = modifications
             .filter { !pendingSaveNames.contains($0.recordID.recordName) }
         for record in records {
             systemFieldsByRecordName[record.recordID.recordName] = Self.encodeSystemFields(of: record)
         }
-        for deletion in fetched.deletions {
+        for deletion in fetchedDeletions {
             systemFieldsByRecordName[deletion.recordID.recordName] = nil
         }
         Self.saveSystemFields(systemFieldsByRecordName)
@@ -516,7 +633,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             return
         }
         var changes = Self.libraryChanges(from: records)
-        for deletion in fetched.deletions {
+        for deletion in fetchedDeletions {
             Self.addDeletion(recordName: deletion.recordID.recordName, to: &changes)
         }
         // Same list animation as the user's own taps (`.snappy`), so rows slide/fade in and out
@@ -550,6 +667,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             store.applyContentLanguageFromUserDefaults()
         }
         store.applySyncedChanges(Self.libraryChanges(from: records), replacingActiveLibrary: true)
+        isJoiningHousehold = false
         logger.info("Replaced local library with \(records.count) records from iCloud")
     }
 
@@ -648,6 +766,10 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
                     systemFieldsByRecordName[recordID.recordName] = Self.encodeSystemFields(of: serverRecord)
                 }
                 retry.append(.saveRecord(recordID))
+            case .zoneNotFound where Self.isHouseholdMember:
+                // The household's zone is gone (sharing stopped); step 2f handles this properly.
+                hadPermanentFailure = true
+                logger.error("Household zone not found while saving \(recordID.recordName)")
             case .zoneNotFound:
                 syncEngine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: Self.zoneID))])
                 systemFieldsByRecordName[recordID.recordName] = nil
