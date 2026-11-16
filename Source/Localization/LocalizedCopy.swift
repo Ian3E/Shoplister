@@ -612,6 +612,34 @@ enum LocalizedCopy {
         )
     }
 
+    static var alsoAppliesToHousehold: String {
+        String(
+            localized: "iCloud Sync is on, so this also applies to everyone in your household.",
+            comment: "Extra line in destructive library alerts when the owner has invited people"
+        )
+    }
+
+    static var ownerOnlyLanguageFooter: String {
+        String(
+            localized: "Only the household owner can change the library language.",
+            comment: "Settings footer for household members under the library language picker"
+        )
+    }
+
+    static var ownerOnlyImportFooter: String {
+        String(
+            localized: "Only the household owner can import a backup.",
+            comment: "Settings footer for household members under Backup"
+        )
+    }
+
+    static var ownerOnlyClearFooter: String {
+        String(
+            localized: "Only the household owner can clear the library.",
+            comment: "Settings footer for household members under Clear library"
+        )
+    }
+
     static var alsoAppliesToOtherDevices: String {
         String(
             localized: "iCloud Sync is on, so this also applies to your other devices.",

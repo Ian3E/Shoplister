@@ -192,7 +192,7 @@ struct ShoplisterApp: App {
                 } message: {
                     Text(LocalizedCopy.couldNotJoinHouseholdMessage)
                 }
-                .overlay(alignment: .top) {
+                .overlay {
                     if sync.isJoiningHousehold {
                         HStack(spacing: 10) {
                             ProgressView()
@@ -202,7 +202,6 @@ struct ShoplisterApp: App {
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
                         .glassEffect(.regular, in: Capsule(style: .continuous))
-                        .padding(.top, 8)
                         .transition(.opacity)
                     }
                 }

@@ -315,6 +315,13 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
     /// Queues one user edit (from `GroceryStore`) for upload. Ignored while sync is off.
     private func queueLocalChanges(_ change: GroceryStore.LibraryChangeSet) {
+        // Safety net for Phase 2e (Settings already blocks this): a member must never push a language
+        // change, which would delete the whole household's library. Restore the household's lists instead.
+        if change.householdInfoChanged, Self.isHouseholdMember, engine != nil {
+            logger.error("Blocked a library language change from a household member; restoring household lists")
+            restartWithFullDownload()
+            return
+        }
         guard let engine, !isReplacingLocalLibrary else { return }
         func ids(_ type: String, _ uuids: Set<UUID>) -> [CKRecord.ID] {
             uuids.map { Self.recordID(Self.recordName(type, $0.uuidString)) }

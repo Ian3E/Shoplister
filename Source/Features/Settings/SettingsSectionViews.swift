@@ -91,6 +91,11 @@ struct SettingsItemLibraryView: View {
     @State private var backupErrorMessage: String?
     @State private var backupSuccessMessage: String?
 
+    /// Phase 2e: household members can't do the library-wide actions that would wipe everyone's lists.
+    private var isOwnerOnlyLocked: Bool {
+        iCloudSyncEnabled && SyncService.isHouseholdMember
+    }
+
     /// Status line under the switch: why iCloud isn't ready, or (when it is and sync is on) sync progress.
     private var iCloudStatusText: String? {
         switch iCloudAccount.status {
@@ -182,21 +187,30 @@ struct SettingsItemLibraryView: View {
                     }
                     pendingCatalogLanguageRaw = newValue
                 }
+                .disabled(isOwnerOnlyLocked)
             } footer: {
-                Text(LocalizedCopy.libraryLanguageFooter)
+                Text(isOwnerOnlyLocked ? LocalizedCopy.ownerOnlyLanguageFooter : LocalizedCopy.libraryLanguageFooter)
             }
 
-            Section(LocalizedCopy.backup) {
+            Section {
                 Button(LocalizedCopy.export) { isPresentingExportConfirm = true }
                 Button(LocalizedCopy.importAction) { isPickingImportFile = true }
+                    .disabled(isOwnerOnlyLocked)
+            } header: {
+                Text(LocalizedCopy.backup)
+            } footer: {
+                if isOwnerOnlyLocked {
+                    Text(LocalizedCopy.ownerOnlyImportFooter)
+                }
             }
 
             Section {
                 Button(LocalizedCopy.clearLibrary, role: .destructive) {
                     isPresentingClearLibraryConfirm = true
                 }
+                .disabled(isOwnerOnlyLocked)
             } footer: {
-                Text(LocalizedCopy.clearLibraryFooter)
+                Text(isOwnerOnlyLocked ? LocalizedCopy.ownerOnlyClearFooter : LocalizedCopy.clearLibraryFooter)
             }
         }
         .navigationTitle(LocalizedCopy.settingsItemLibrary)
@@ -219,7 +233,8 @@ struct SettingsItemLibraryView: View {
             onImport: runPendingImport,
             onClearLibrary: { store.clearLibrary(for: catalogLanguage) },
             store: store,
-            appliesToOtherDevices: iCloudSyncEnabled
+            appliesToOtherDevices: iCloudSyncEnabled,
+            appliesToHousehold: iCloudSyncEnabled && sync.householdShare != nil
         ))
         .sheet(item: $sharePayload) { payload in
             ActivityView(activityItems: [payload.url])
@@ -708,9 +723,14 @@ private struct SettingsItemLibraryAlertsModifier: ViewModifier {
     let store: GroceryStore
     /// iCloud Sync is on: destructive library actions also apply to the user's other devices.
     var appliesToOtherDevices = false
+    /// The owner has invited people: these actions apply to the whole household.
+    var appliesToHousehold = false
 
     private func withSyncNote(_ message: String) -> String {
-        appliesToOtherDevices ? message + "\n\n" + LocalizedCopy.alsoAppliesToOtherDevices : message
+        if appliesToHousehold {
+            return message + "\n\n" + LocalizedCopy.alsoAppliesToHousehold
+        }
+        return appliesToOtherDevices ? message + "\n\n" + LocalizedCopy.alsoAppliesToOtherDevices : message
     }
 
     private var pendingLanguageChangePresented: Binding<Bool> {
