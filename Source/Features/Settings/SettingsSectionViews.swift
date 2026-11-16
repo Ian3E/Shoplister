@@ -74,6 +74,8 @@ struct SettingsGeneralView: View {
 
 struct SettingsItemLibraryView: View {
     @EnvironmentObject private var store: GroceryStore
+    @AppStorage(AppICloudSync.storageKey) private var iCloudSyncEnabled: Bool = false
+    @StateObject private var iCloudAccount = ICloudAccountMonitor()
 
     @AppStorage(AppContentLanguage.storageKey) private var catalogLanguageRaw: String = AppContentLanguage.english.rawValue
 
@@ -88,8 +90,33 @@ struct SettingsItemLibraryView: View {
     @State private var backupErrorMessage: String?
     @State private var backupSuccessMessage: String?
 
+    /// Status line under the switch; `nil` when iCloud is ready (the footer description is enough).
+    private var iCloudStatusText: String? {
+        switch iCloudAccount.status {
+        case .available: return nil
+        case .checking: return LocalizedCopy.iCloudStatusChecking
+        case .noAccount: return LocalizedCopy.iCloudStatusNoAccount
+        case .restricted: return LocalizedCopy.iCloudStatusRestricted
+        case .temporarilyUnavailable: return LocalizedCopy.iCloudStatusTemporarilyUnavailable
+        case .couldNotDetermine: return LocalizedCopy.iCloudStatusCouldNotDetermine
+        }
+    }
+
     var body: some View {
         List {
+            Section {
+                Toggle(LocalizedCopy.iCloudSync, isOn: $iCloudSyncEnabled)
+                    // Can always turn off; can turn on only when an iCloud account is ready.
+                    .disabled(!iCloudSyncEnabled && !iCloudAccount.status.allowsEnablingSync)
+            } footer: {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(LocalizedCopy.iCloudSyncFooter)
+                    if let iCloudStatusText {
+                        Text(iCloudStatusText)
+                    }
+                }
+            }
+
             Section {
                 Picker(LocalizedCopy.libraryLanguage, selection: $catalogLanguagePickerValue) {
                     ForEach(AppContentLanguage.allCases) { option in

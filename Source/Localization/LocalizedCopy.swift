@@ -464,6 +464,45 @@ enum LocalizedCopy {
         String(localized: "Shopping list badge", comment: "Toggle: unchecked-count badge on the All Items shopping list button")
     }
 
+    // MARK: - iCloud Sync
+
+    static var iCloudSync: String {
+        String(localized: "iCloud Sync", comment: "Toggle: sync library and shopping list through iCloud")
+    }
+
+    static var iCloudSyncFooter: String {
+        String(
+            localized: "Keep your library and shopping list in sync on all your devices signed in to the same Apple ID.",
+            comment: "Footer under iCloud Sync toggle"
+        )
+    }
+
+    static var iCloudStatusChecking: String {
+        String(localized: "Checking iCloud…", comment: "iCloud Sync status: checking account")
+    }
+
+    static var iCloudStatusNoAccount: String {
+        String(
+            localized: "You're not signed in to iCloud. Sign in from the Settings app to use sync.",
+            comment: "iCloud Sync status: no iCloud account"
+        )
+    }
+
+    static var iCloudStatusRestricted: String {
+        String(localized: "iCloud isn't available on this device.", comment: "iCloud Sync status: restricted (e.g. parental controls)")
+    }
+
+    static var iCloudStatusTemporarilyUnavailable: String {
+        String(
+            localized: "iCloud is temporarily unavailable. Sync will resume automatically.",
+            comment: "iCloud Sync status: temporarily unavailable"
+        )
+    }
+
+    static var iCloudStatusCouldNotDetermine: String {
+        String(localized: "Couldn't check iCloud. Try again later.", comment: "iCloud Sync status: could not determine")
+    }
+
     static var shortcutToAllItems: String {
         String(localized: "Shortcut to All Items", comment: "Toggle: shopping list + button opens All Items")
     }

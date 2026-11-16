@@ -4,6 +4,72 @@
     "" : {
 
     },
+    "Checking iCloud…" : {
+      "comment" : "iCloud Sync status: checking account",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "בודק את iCloud…"
+          }
+        }
+      }
+    },
+    "Couldn't check iCloud. Try again later." : {
+      "comment" : "iCloud Sync status: could not determine",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ניתן לבדוק את iCloud. נסו שוב מאוחר יותר."
+          }
+        }
+      }
+    },
+    "iCloud isn't available on this device." : {
+      "comment" : "iCloud Sync status: restricted (e.g. parental controls)",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud אינו זמין במכשיר זה."
+          }
+        }
+      }
+    },
+    "iCloud is temporarily unavailable. Sync will resume automatically." : {
+      "comment" : "iCloud Sync status: temporarily unavailable",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud אינו זמין זמנית. הסנכרון יתחדש אוטומטית."
+          }
+        }
+      }
+    },
+    "iCloud Sync" : {
+      "comment" : "Toggle: sync library and shopping list through iCloud",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "סנכרון iCloud"
+          }
+        }
+      }
+    },
+    "Keep your library and shopping list in sync on all your devices signed in to the same Apple ID." : {
+      "comment" : "Footer under iCloud Sync toggle",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "שמירה על הספרייה ורשימת הקניות מסונכרנות בכל המכשירים המחוברים לאותו Apple ID."
+          }
+        }
+      }
+    },
     ", %lld unchecked" : {
       "comment" : "Accessibility suffix for collapsed section with unchecked count",
       "localizations" : {
@@ -3193,6 +3259,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "הוספת את הפריט הראשון שלך לרשימת הקניות."
+          }
+        }
+      }
+    },
+    "You're not signed in to iCloud. Sign in from the Settings app to use sync." : {
+      "comment" : "iCloud Sync status: no iCloud account",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "אינכם מחוברים ל-iCloud. התחברו מאפליקציית ההגדרות כדי להשתמש בסנכרון."
           }
         }
       }
