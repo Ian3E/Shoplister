@@ -1,3 +1,4 @@
+import CloudKit
 import SwiftUI
 import UIKit
 
@@ -75,6 +76,40 @@ private final class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> UIInterfaceOrientationMask {
         OrientationLock.currentMask()
     }
+
+    /// Phase 2a: attach `SceneDelegate` so household invite links reach the app.
+    /// SwiftUI still creates and manages the window.
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        configuration.delegateClass = SceneDelegate.self
+        return configuration
+    }
+}
+
+/// Receives household invites (CloudKit share links). iOS calls one of these after the person taps
+/// an invite: `willConnectTo` when the app wasn't running, `userDidAcceptCloudKitShareWith` otherwise.
+@MainActor
+private final class SceneDelegate: NSObject, UIWindowSceneDelegate {
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        if let metadata = connectionOptions.cloudKitShareMetadata {
+            SyncService.shared.receivedHouseholdInvite(metadata)
+        }
+    }
+
+    func windowScene(
+        _ windowScene: UIWindowScene,
+        userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
+    ) {
+        SyncService.shared.receivedHouseholdInvite(cloudKitShareMetadata)
+    }
 }
 
 @main
@@ -90,6 +125,7 @@ struct ShoplisterApp: App {
     @AppStorage(AppAutoLock.disableAutoLockStorageKey) private var disableAutoLock: Bool = false
     @AppStorage(AppShoppingBadgeUnchecked.storageKey) private var showUncheckedCountAppBadge: Bool = false
     @AppStorage(AppICloudSync.storageKey) private var iCloudSyncEnabled: Bool = false
+    @ObservedObject private var sync = SyncService.shared
 
     var body: some Scene {
         WindowGroup {
@@ -131,6 +167,23 @@ struct ShoplisterApp: App {
                 }
                 .onChange(of: store.catalog) { _, _ in
                     syncShoppingIconBadge()
+                }
+                // TEMPORARY (Phase 2a test only, English-only on purpose): confirms an invite link
+                // reached the app. Step 2c replaces this with the real join prompt.
+                .alert(
+                    Text(verbatim: "Household invite received"),
+                    isPresented: Binding(
+                        get: { sync.pendingHouseholdInvite != nil },
+                        set: { if !$0 { sync.pendingHouseholdInvite = nil } }
+                    )
+                ) {
+                    Button(role: .cancel) {
+                        sync.pendingHouseholdInvite = nil
+                    } label: {
+                        Text(verbatim: "OK")
+                    }
+                } message: {
+                    Text(verbatim: "From: \(sync.pendingHouseholdInvite?.ownerName ?? "unknown"). Joining comes in step 2c.")
                 }
         }
     }

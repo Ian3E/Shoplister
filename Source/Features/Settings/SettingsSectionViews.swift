@@ -126,6 +126,36 @@ struct SettingsItemLibraryView: View {
                 }
             }
 
+            if iCloudSyncEnabled, iCloudAccount.status == .available {
+                Section {
+                    Button {
+                        Task { await sync.presentHouseholdSharing() }
+                    } label: {
+                        HStack {
+                            Label(
+                                sync.householdShare == nil ? LocalizedCopy.invitePeople : LocalizedCopy.manageHousehold,
+                                systemImage: "person.2"
+                            )
+                            if sync.isPreparingHouseholdSharing {
+                                Spacer()
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .disabled(sync.isPreparingHouseholdSharing)
+                    .task { await sync.refreshHouseholdShare() }
+                    .alert(LocalizedCopy.couldNotOpenHouseholdTitle, isPresented: $sync.householdSharingFailed) {
+                        Button(LocalizedCopy.ok, role: .cancel) {}
+                    } message: {
+                        Text(LocalizedCopy.couldNotOpenHouseholdMessage)
+                    }
+                } header: {
+                    Text(LocalizedCopy.household)
+                } footer: {
+                    Text(LocalizedCopy.householdFooter)
+                }
+            }
+
             Section {
                 Picker(LocalizedCopy.libraryLanguage, selection: $catalogLanguagePickerValue) {
                     ForEach(AppContentLanguage.allCases) { option in

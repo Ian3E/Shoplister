@@ -48,6 +48,17 @@
         }
       }
     },
+    "Couldn't Open Household" : {
+      "comment" : "Alert title when household sharing fails to open",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ניתן לפתוח את משק הבית"
+          }
+        }
+      }
+    },
     "Couldn't Reach iCloud" : {
       "comment" : "Alert title when checking iCloud before enabling sync fails",
       "localizations" : {
@@ -55,6 +66,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "לא ניתן להתחבר ל-iCloud"
+          }
+        }
+      }
+    },
+    "Household" : {
+      "comment" : "Settings section title for household sharing",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "משק בית"
           }
         }
       }
@@ -125,6 +147,28 @@
         }
       }
     },
+    "Invite People" : {
+      "comment" : "Settings button: invite people to the household",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הזמנת אנשים"
+          }
+        }
+      }
+    },
+    "Invite people to share your lists. Everyone in the household sees and edits the same lists." : {
+      "comment" : "Settings Household section footer",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הזמינו אנשים לשתף את הרשימות שלכם. כל חברי משק הבית רואים ועורכים את אותן רשימות."
+          }
+        }
+      }
+    },
     "Keep your library and shopping list in sync on all your devices signed in to the same Apple ID." : {
       "comment" : "Footer under iCloud Sync toggle",
       "localizations" : {
@@ -158,6 +202,28 @@
         }
       }
     },
+    "Make sure you're online and iCloud Sync says Up to date, then try again." : {
+      "comment" : "Alert message when household sharing fails to open",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ודאו שאתם מחוברים לאינטרנט ושסנכרון iCloud מציג ״מעודכן״, ונסו שוב."
+          }
+        }
+      }
+    },
+    "Manage Household" : {
+      "comment" : "Settings button: manage household members",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ניהול משק הבית"
+          }
+        }
+      }
+    },
     "Replace This Device's Library?" : {
       "comment" : "Alert title when turning on iCloud Sync and iCloud already has a library",
       "localizations" : {
@@ -165,6 +231,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "להחליף את הספרייה במכשיר זה?"
+          }
+        }
+      }
+    },
+    "Shoplister Household" : {
+      "comment" : "Title of the household invite shown to invited people",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "משק בית ב-Shoplister"
           }
         }
       }

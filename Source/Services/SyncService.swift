@@ -54,6 +54,23 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
     @Published var enablePrompt: EnablePrompt?
 
+    /// A household invite the person tapped (Phase 2a). Step 2c turns this into the join flow.
+    struct HouseholdInvite {
+        let metadata: CKShare.Metadata
+        /// Inviter's name as iCloud reports it, if available.
+        let ownerName: String?
+    }
+
+    @Published var pendingHouseholdInvite: HouseholdInvite?
+
+    /// The household share for this zone, if the owner has created one (Phase 2b).
+    @Published private(set) var householdShare: CKShare?
+    /// Getting the share ready before Apple's sharing screen opens.
+    @Published private(set) var isPreparingHouseholdSharing = false
+    /// Creating or opening the household failed (shown as an alert in Settings).
+    @Published var householdSharingFailed = false
+    private var householdSharingDelegate: HouseholdSharingDelegate?
+
     /// All household data lives in one custom zone (Phase 2 shares this whole zone).
     static let zoneID = CKRecordZone.ID(zoneName: "Household", ownerName: CKCurrentUserDefaultName)
 
@@ -281,6 +298,104 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
                 logger.info("Foreground fetch didn't complete: \(error.localizedDescription)")
             }
         }
+    }
+
+    // MARK: - Household invites (Phase 2)
+
+    /// Called by `SceneDelegate` when an invite link opens the app.
+    func receivedHouseholdInvite(_ metadata: CKShare.Metadata) {
+        let ownerName = metadata.ownerIdentity.nameComponents.map {
+            PersonNameComponentsFormatter.localizedString(from: $0, style: .default)
+        }
+        logger.info("Household invite received from \(ownerName ?? "unknown", privacy: .private)")
+        pendingHouseholdInvite = HouseholdInvite(metadata: metadata, ownerName: ownerName)
+    }
+
+    // MARK: - Household sharing, owner side (Phase 2b)
+
+    private var container: CKContainer { CKContainer(identifier: AppICloudSync.containerIdentifier) }
+
+    /// The whole Household zone is shared with one zone-wide share record.
+    private static let householdShareID = CKRecord.ID(recordName: CKRecordNameZoneWideShare, zoneID: zoneID)
+
+    /// Settings → Household calls this to show "Invite People" vs "Manage Household".
+    func refreshHouseholdShare() async {
+        guard engine != nil else {
+            householdShare = nil
+            return
+        }
+        do {
+            householdShare = try await fetchHouseholdShare()
+        } catch {
+            // Offline etc.: keep showing what we knew.
+            logger.info("Couldn't check household share: \(error.localizedDescription)")
+        }
+    }
+
+    /// "Invite People" / "Manage Household": make sure the share exists, then open Apple's sharing screen.
+    func presentHouseholdSharing() async {
+        guard engine != nil, !isPreparingHouseholdSharing else { return }
+        isPreparingHouseholdSharing = true
+        defer { isPreparingHouseholdSharing = false }
+        do {
+            let share: CKShare
+            if let existing = try await fetchHouseholdShare() {
+                share = existing
+            } else {
+                share = try await createHouseholdShare()
+            }
+            householdShare = share
+            guard let presenter = Self.topPresenter() else { return }
+            let controller = UICloudSharingController(share: share, container: container)
+            // Invite-only (no public link), and invited people can edit.
+            controller.availablePermissions = [.allowPrivate, .allowReadWrite]
+            let delegate = HouseholdSharingDelegate(service: self)
+            householdSharingDelegate = delegate
+            controller.delegate = delegate
+            presenter.present(controller, animated: true)
+        } catch {
+            logger.error("Couldn't open household sharing: \(error.localizedDescription)")
+            householdSharingFailed = true
+        }
+    }
+
+    /// Nil when there's no share yet (or the zone hasn't reached iCloud yet).
+    private func fetchHouseholdShare() async throws -> CKShare? {
+        do {
+            return try await container.privateCloudDatabase.record(for: Self.householdShareID) as? CKShare
+        } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
+            return nil
+        }
+    }
+
+    private func createHouseholdShare() async throws -> CKShare {
+        let share = CKShare(recordZoneID: Self.zoneID)
+        share[CKShare.SystemFieldKey.title] = LocalizedCopy.householdShareTitle
+        share.publicPermission = .none
+        let result = try await container.privateCloudDatabase.modifyRecords(saving: [share], deleting: [])
+        guard let saved = try result.saveResults[share.recordID]?.get() as? CKShare else {
+            throw CKError(.internalError)
+        }
+        logger.info("Household share created")
+        return saved
+    }
+
+    fileprivate func householdShareDidChange(_ share: CKShare?) {
+        householdShare = share
+    }
+
+    private static func topPresenter() -> UIViewController? {
+        guard let root = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .rootViewController
+        else { return nil }
+        var presenter = root
+        while let presented = presenter.presentedViewController, !presented.isBeingDismissed {
+            presenter = presented
+        }
+        return presenter
     }
 
     // MARK: - CKSyncEngineDelegate
@@ -714,5 +829,32 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     private static func saveSystemFields(_ fields: [String: Data]) {
         guard let data = try? JSONEncoder().encode(fields) else { return }
         try? data.write(to: systemFieldsURL, options: [.atomic])
+    }
+}
+
+/// Hears back from Apple's sharing screen (people added, sharing stopped).
+@MainActor
+private final class HouseholdSharingDelegate: NSObject, UICloudSharingControllerDelegate {
+    private weak var service: SyncService?
+
+    init(service: SyncService) {
+        self.service = service
+    }
+
+    func cloudSharingController(_ csc: UICloudSharingController, failedToSaveShareWithError error: Error) {
+        Logger(subsystem: "com.byteloft.apps.shoplister", category: "Sync")
+            .error("Sharing screen couldn't save: \(error.localizedDescription)")
+    }
+
+    func itemTitle(for csc: UICloudSharingController) -> String? {
+        LocalizedCopy.householdShareTitle
+    }
+
+    func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
+        service?.householdShareDidChange(csc.share)
+    }
+
+    func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
+        service?.householdShareDidChange(nil)
     }
 }

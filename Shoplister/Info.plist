@@ -30,6 +30,8 @@
 	<string>Take photos to attach to grocery items in your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose photos from your library to attach to grocery items.</string>
+	<key>CKSharingSupported</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

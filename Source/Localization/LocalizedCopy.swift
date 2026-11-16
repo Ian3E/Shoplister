@@ -518,6 +518,40 @@ enum LocalizedCopy {
         )
     }
 
+    static var household: String {
+        String(localized: "Household", comment: "Settings section title for household sharing")
+    }
+
+    static var invitePeople: String {
+        String(localized: "Invite People", comment: "Settings button: invite people to the household")
+    }
+
+    static var manageHousehold: String {
+        String(localized: "Manage Household", comment: "Settings button: manage household members")
+    }
+
+    static var householdFooter: String {
+        String(
+            localized: "Invite people to share your lists. Everyone in the household sees and edits the same lists.",
+            comment: "Settings Household section footer"
+        )
+    }
+
+    static var householdShareTitle: String {
+        String(localized: "Shoplister Household", comment: "Title of the household invite shown to invited people")
+    }
+
+    static var couldNotOpenHouseholdTitle: String {
+        String(localized: "Couldn't Open Household", comment: "Alert title when household sharing fails to open")
+    }
+
+    static var couldNotOpenHouseholdMessage: String {
+        String(
+            localized: "Make sure you're online and iCloud Sync says Up to date, then try again.",
+            comment: "Alert message when household sharing fails to open"
+        )
+    }
+
     static var syncStatusWaitingForNetwork: String {
         String(
             localized: "Waiting for a connection. Changes will sync automatically.",
