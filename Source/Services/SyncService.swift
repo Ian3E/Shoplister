@@ -1,6 +1,7 @@
 import CloudKit
 import Foundation
 import os
+import SwiftUI
 import UIKit
 
 /// iCloud sync for the active language's library (household sync plan, Phase 1).
@@ -319,7 +320,12 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         for deletion in fetched.deletions {
             Self.addDeletion(recordName: deletion.recordID.recordName, to: &changes)
         }
-        store?.applySyncedChanges(changes, replacingActiveLibrary: false)
+        // Same list animation as the user's own taps (`.snappy`), so rows slide/fade in and out
+        // instead of jumping; none when Reduce Motion is on, matching the rest of the app.
+        let animation: Animation? = UIAccessibility.isReduceMotionEnabled ? nil : .snappy
+        withAnimation(animation) {
+            store?.applySyncedChanges(changes, replacingActiveLibrary: false)
+        }
     }
 
     /// Applies the full download in one go once the first complete fetch finishes.
