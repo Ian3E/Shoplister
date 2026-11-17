@@ -164,8 +164,8 @@ Goal: get off UserDefaults and give sync a single mutation path, with **no visib
 - [x] Phase 0a: library JSON files + migration + dual-write
 - [x] Phase 0b: single mutation path in `GroceryStore`
 - [x] Phase 0: test pass
-- [ ] Phase 0: ship 1.2
-- [ ] 1.3: remove the UserDefaults dual-write and the "prefer a differing UserDefaults copy" check in `GroceryStore.loadBundle`
+- [x] Phase 0: ship 1.2
+- [x] 1.3: remove the UserDefaults dual-write and the "prefer a differing UserDefaults copy" check in `GroceryStore.loadBundle`
 - [x] Apple setup: CloudKit container `iCloud.com.byteloft.apps.shoplister`, push, background modes
 - [x] Phase 1: CKSyncEngine (private DB), record mapping, conflict rules, Settings sync status
 - [x] Phase 2: zone share, invite/accept/leave/delete, owner-only language, Household settings

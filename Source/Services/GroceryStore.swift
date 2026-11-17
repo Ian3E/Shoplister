@@ -1271,17 +1271,10 @@ final class GroceryStore: ObservableObject {
         return true
     }
 
-    /// One language: file first, UserDefaults copy as the fallback.
+    /// One language: the library file. The old UserDefaults copy (no longer updated since 1.3) is only
+    /// an emergency fallback when the file is missing or unreadable.
     private func loadBundle(fileData: Data?, language: AppContentLanguage, defaultsKey: String) -> V3Bundle {
         let defaultsData = UserDefaults.standard.data(forKey: defaultsKey)
-        // While dual-writing (1.2), both copies hold identical bytes. A *different* UserDefaults copy
-        // means an older build (e.g. 1.1 installed over this one while testing) saved after us —
-        // trust that newer copy. Remove this check together with the dual-write in 1.3.
-        if let defaultsData, defaultsData != fileData,
-           let bundle = try? decoder.decode(V3Bundle.self, from: defaultsData)
-        {
-            return bundle
-        }
         if let fileData {
             if let bundle = try? decoder.decode(V3Bundle.self, from: fileData) {
                 return bundle
@@ -1298,13 +1291,9 @@ final class GroceryStore: ObservableObject {
     private func saveAllToDisk() {
         if let d = try? encoder.encode(english) {
             LibraryFileStore.save(d, for: .english)
-            // Dual-write fallback for 1.2 (keeps the old copy current). Remove in 1.3.
-            UserDefaults.standard.set(d, forKey: Self.v3EnglishKey)
         }
         if let d = try? encoder.encode(hebrew) {
             LibraryFileStore.save(d, for: .hebrew)
-            // Dual-write fallback for 1.2 (keeps the old copy current). Remove in 1.3.
-            UserDefaults.standard.set(d, forKey: Self.v3HebrewKey)
         }
         ShareExtensionAppGroupSupport.writeCatalogSnapshotToAppGroup(englishCatalog: english.catalog, hebrewCatalog: hebrew.catalog)
     }
