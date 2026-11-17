@@ -736,11 +736,15 @@ final class GroceryStore: ObservableObject {
         var deletedRecipeIDs: Set<UUID> = []
         /// The library language changed (Phase 1e): sync must update the HouseholdInfo record.
         var householdInfoChanged = false
+        /// Items whose photo was added or replaced / removed (Phase 3a). Keyed by item ID.
+        var savedPhotoItemIDs: Set<UUID> = []
+        var deletedPhotoItemIDs: Set<UUID> = []
 
         var isEmpty: Bool {
             savedItemIDs.isEmpty && deletedItemIDs.isEmpty && savedTagIDs.isEmpty && deletedTagIDs.isEmpty
                 && savedShoppingEntryIDs.isEmpty && deletedShoppingEntryIDs.isEmpty
                 && savedRecipeIDs.isEmpty && deletedRecipeIDs.isEmpty && !householdInfoChanged
+                && savedPhotoItemIDs.isEmpty && deletedPhotoItemIDs.isEmpty
         }
 
         mutating func merge(_ other: LibraryChangeSet) {
@@ -753,6 +757,11 @@ final class GroceryStore: ObservableObject {
             savedRecipeIDs.formUnion(other.savedRecipeIDs)
             deletedRecipeIDs.formUnion(other.deletedRecipeIDs)
             householdInfoChanged = householdInfoChanged || other.householdInfoChanged
+            savedPhotoItemIDs.formUnion(other.savedPhotoItemIDs)
+            deletedPhotoItemIDs.formUnion(other.deletedPhotoItemIDs)
+            // A later save wins over an earlier delete, and the other way round.
+            savedPhotoItemIDs.subtract(other.deletedPhotoItemIDs)
+            deletedPhotoItemIDs.subtract(other.savedPhotoItemIDs)
         }
     }
 
@@ -786,7 +795,26 @@ final class GroceryStore: ObservableObject {
         )
         (change.savedShoppingEntryIDs, change.deletedShoppingEntryIDs) = diff(before.shopping, after.shopping)
         (change.savedRecipeIDs, change.deletedRecipeIDs) = diff(before.recipes, after.recipes)
+        // Photos (Phase 3a): a photo appeared or disappeared. Replacing an existing photo doesn't change
+        // `hasImage`, so that case is reported separately with `reportPhotoReplaced`.
+        let hadPhoto = Set(before.catalog.filter(\.hasImage).map(\.id))
+        let hasPhoto = Set(after.catalog.filter(\.hasImage).map(\.id))
+        change.savedPhotoItemIDs = hasPhoto.subtracting(hadPhoto)
+        change.deletedPhotoItemIDs = hadPhoto.subtracting(hasPhoto)
         return change
+    }
+
+    /// The item editor replaced an existing photo with a new one (Phase 3a).
+    func reportPhotoReplaced(itemID: UUID) {
+        guard activeBundle.catalog.contains(where: { $0.id == itemID && $0.hasImage }) else { return }
+        var change = LibraryChangeSet()
+        change.savedPhotoItemIDs = [itemID]
+        deliverLibraryChange(change)
+    }
+
+    /// Photos downloaded or removed by sync: refresh rows that show a photo indicator.
+    func syncedPhotosChanged() {
+        objectWillChange.send()
     }
 
     private func deliverLibraryChange(_ change: LibraryChangeSet) {
@@ -1527,7 +1555,10 @@ final class GroceryStore: ObservableObject {
         defer {
             // Phase 1e: sync the imported active library to other devices (no-op if import failed early).
             if reportsChange {
-                deliverLibraryChange(Self.changeSet(from: before, to: activeBundle))
+                var change = Self.changeSet(from: before, to: activeBundle)
+                // Imported photos may replace ones on items that already had a photo: send them all.
+                change.savedPhotoItemIDs.formUnion(activeBundle.catalog.filter(\.hasImage).map(\.id))
+                deliverLibraryChange(change)
             }
         }
         let payload = try LibraryBackupArchive.loadImportPayload(from: zipURL, expectedLanguage: language)

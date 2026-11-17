@@ -187,7 +187,12 @@ struct ItemEditorView: View {
             try? ItemImageStore.save(img, forItemID: draft.id)
             updated.hasImage = ItemImageStore.fileExists(forItemID: draft.id)
         }
+        let replacedPhoto = !removeImageOnSave && pendingImage != nil && draft.hasImage && updated.hasImage
         store.updateCatalogItem(updated)
+        if replacedPhoto {
+            // hasImage didn't change, so sync needs telling that the photo itself did.
+            store.reportPhotoReplaced(itemID: draft.id)
+        }
         dismiss()
     }
 }

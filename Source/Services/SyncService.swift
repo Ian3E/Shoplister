@@ -142,6 +142,9 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         static let shoppingEntry = "ShoppingEntry"
         static let savedList = "SavedList"
         static let householdInfo = "HouseholdInfo"
+        /// One per item that has a photo (Phase 3a), named after the item: `ItemPhoto.<item UUID>`.
+        /// Separate from `Item` so renaming or checking off an item never re-sends the photo.
+        static let itemPhoto = "ItemPhoto"
         /// `HouseholdInfo` is a single record.
         static let householdInfoName = "main"
     }
@@ -188,6 +191,20 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         store.onLibraryChange = { [weak self] change in
             self?.queueLocalChanges(change)
         }
+        uploadExistingPhotosOnceIfNeeded()
+    }
+
+    /// Devices that were already syncing before photo sync existed (Phase 3a) upload their photos once.
+    private static let photoBackfillKey = "app.sync.photoBackfillDone"
+
+    private func uploadExistingPhotosOnceIfNeeded() {
+        guard engine != nil, let store, !UserDefaults.standard.bool(forKey: Self.photoBackfillKey) else { return }
+        UserDefaults.standard.set(true, forKey: Self.photoBackfillKey)
+        var change = GroceryStore.LibraryChangeSet()
+        change.savedPhotoItemIDs = Set(store.catalog.filter(\.hasDisplayablePhoto).map(\.id))
+        guard !change.savedPhotoItemIDs.isEmpty else { return }
+        logger.info("Uploading \(change.savedPhotoItemIDs.count) existing photos")
+        queueLocalChanges(change)
     }
 
     /// Called when the **iCloud Sync** switch changes.
@@ -247,6 +264,8 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     /// Fresh engine with no history: fetches the whole zone into `replacementBuffer`, then
     /// `finishReplacingLocalLibraryIfNeeded` swaps the active library in one step.
     private func restartWithFullDownload() {
+        // The download brings the photos; nothing old to upload afterwards.
+        UserDefaults.standard.set(true, forKey: Self.photoBackfillKey)
         stopEngine()
         Self.deleteLocalSyncFiles()
         systemFieldsByRecordName = [:]
@@ -330,6 +349,8 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         names += (store.inventoryTags + store.shoppingTags).map { Self.recordName(RecordType.section, $0.id.uuidString) }
         names += store.shopping.map { Self.recordName(RecordType.shoppingEntry, $0.id.uuidString) }
         names += store.recipes.map { Self.recordName(RecordType.savedList, $0.id.uuidString) }
+        names += store.catalog.filter(\.hasDisplayablePhoto).map { Self.recordName(RecordType.itemPhoto, $0.id.uuidString) }
+        UserDefaults.standard.set(true, forKey: Self.photoBackfillKey)
         engine.state.add(pendingRecordZoneChanges: names.map { .saveRecord(Self.recordID($0)) })
         status = .syncing
         logger.info("Queued full upload of \(names.count) records")
@@ -356,7 +377,10 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             + ids(RecordType.section, change.deletedTagIDs)
             + ids(RecordType.shoppingEntry, change.deletedShoppingEntryIDs)
             + ids(RecordType.savedList, change.deletedRecipeIDs)
-        var changes = saves.map { CKSyncEngine.PendingRecordZoneChange.saveRecord($0) }
+        let photoSaves = ids(RecordType.itemPhoto, change.savedPhotoItemIDs)
+        let photoDeletes = ids(RecordType.itemPhoto, change.deletedPhotoItemIDs)
+        var changes = (saves + photoSaves).map { CKSyncEngine.PendingRecordZoneChange.saveRecord($0) }
+            + photoDeletes.map { CKSyncEngine.PendingRecordZoneChange.deleteRecord($0) }
             + deletes.map { CKSyncEngine.PendingRecordZoneChange.deleteRecord($0) }
         if change.householdInfoChanged {
             changes.append(.saveRecord(Self.recordID(Self.recordName(RecordType.householdInfo, RecordType.householdInfoName))))
@@ -820,6 +844,10 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             replacementBuffer += records
             return
         }
+        applyDownloadedPhotos(
+            records,
+            deletedRecordNames: fetchedDeletions.map(\.recordID.recordName)
+        )
         var changes = Self.libraryChanges(from: records)
         for deletion in fetchedDeletions {
             Self.addDeletion(recordName: deletion.recordID.recordName, to: &changes)
@@ -854,11 +882,47 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             UserDefaults.standard.set(language, forKey: AppContentLanguage.storageKey)
             store.applyContentLanguageFromUserDefaults()
         }
+        let previousItemIDs = Set(store.catalog.map(\.id))
         store.applySyncedChanges(Self.libraryChanges(from: records), replacingActiveLibrary: true)
+        // Photos of items that aren't in the downloaded library any more, then the downloaded photos.
+        let keptItemIDs = Set(store.catalog.map(\.id))
+        for id in previousItemIDs.subtracting(keptItemIDs) {
+            ItemImageStore.delete(forItemID: id)
+        }
+        applyDownloadedPhotos(records, deletedRecordNames: [])
         if householdJoinProgress == .joining {
             householdJoinProgress = .finished
         }
         logger.info("Replaced local library with \(records.count) records from iCloud")
+    }
+
+    // MARK: - Photos (Phase 3a)
+
+    /// Saves downloaded photos into the item photo folder and removes deleted ones. The asset files
+    /// CloudKit hands over are temporary, so they're copied right away.
+    private func applyDownloadedPhotos(_ records: [CKRecord], deletedRecordNames: [String]) {
+        var changed = false
+        for record in records where record.recordType == RecordType.itemPhoto {
+            guard let parsed = Self.parseRecordName(record.recordID.recordName),
+                  let itemID = UUID(uuidString: parsed.id),
+                  let asset = record["image"] as? CKAsset,
+                  let fileURL = asset.fileURL else { continue }
+            do {
+                try ItemImageStore.importImage(from: fileURL, forItemID: itemID)
+                changed = true
+            } catch {
+                logger.error("Couldn't save downloaded photo: \(error.localizedDescription)")
+            }
+        }
+        for name in deletedRecordNames {
+            guard let parsed = Self.parseRecordName(name), parsed.type == RecordType.itemPhoto,
+                  let itemID = UUID(uuidString: parsed.id) else { continue }
+            ItemImageStore.delete(forItemID: itemID)
+            changed = true
+        }
+        if changed {
+            store?.syncedPhotosChanged()
+        }
     }
 
     // MARK: - CKRecords → local objects
@@ -965,6 +1029,10 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
                 syncEngine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: Self.zoneID))])
                 systemFieldsByRecordName[recordID.recordName] = nil
                 retry.append(.saveRecord(recordID))
+            case .assetFileNotFound, .assetFileModified:
+                // The photo file changed or disappeared while uploading; build the record again
+                // (it's skipped if the photo is gone).
+                retry.append(.saveRecord(recordID))
             case .unknownItem:
                 // Our stored stamp points at a record the server no longer has; upload it fresh.
                 systemFieldsByRecordName[recordID.recordName] = nil
@@ -1050,6 +1118,14 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             record["quantity"] = entry.quantity
             record["isChecked"] = (entry.isChecked ? 1 : 0)
             record["addedAt"] = entry.addedAt
+            return record
+
+        case RecordType.itemPhoto:
+            // Upload the photo file as an asset. No file (photo or item removed since) → nothing to send.
+            guard let uuid, store.catalog.contains(where: { $0.id == uuid && $0.hasImage }),
+                  ItemImageStore.fileExists(forItemID: uuid) else { return nil }
+            let record = baseRecord(type: type, recordID: recordID)
+            record["image"] = CKAsset(fileURL: ItemImageStore.fileURL(forItemID: uuid))
             return record
 
         case RecordType.savedList:
