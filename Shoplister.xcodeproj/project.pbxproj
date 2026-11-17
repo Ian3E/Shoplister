@@ -88,6 +88,7 @@
 		AA0000690000000000000069 /* HomeFirstVisitExplainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001020000000000000108 /* HomeFirstVisitExplainerView.swift */; };
 		AA00006A000000000000006A /* AppWelcomeExplainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001020000000000000109 /* AppWelcomeExplainer.swift */; };
 		AA00006B000000000000006B /* WelcomeExplainerOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102000000000000010A /* WelcomeExplainerOverlay.swift */; };
+		AA00000F040000000000F004 /* HouseholdJoiningOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001010000000000000F04 /* HouseholdJoiningOverlay.swift */; };
 		AA00006C000000000000006C /* SettingsSectionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102000000000000010B /* SettingsSectionViews.swift */; };
 		AA00006D000000000000006D /* SettingsAppFeaturesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102000000000000010C /* SettingsAppFeaturesView.swift */; };
 		AA00006E000000000000006E /* AppFeaturesCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000102000000000000010D /* AppFeaturesCatalog.swift */; };
@@ -205,6 +206,7 @@
 		AA0001020000000000000108 /* HomeFirstVisitExplainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFirstVisitExplainerView.swift; sourceTree = "<group>"; };
 		AA0001020000000000000109 /* AppWelcomeExplainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppWelcomeExplainer.swift; sourceTree = "<group>"; };
 		AA000102000000000000010A /* WelcomeExplainerOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeExplainerOverlay.swift; sourceTree = "<group>"; };
+		AA0001010000000000000F04 /* HouseholdJoiningOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdJoiningOverlay.swift; sourceTree = "<group>"; };
 		AA000102000000000000010B /* SettingsSectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSectionViews.swift; sourceTree = "<group>"; };
 		AA000102000000000000010C /* SettingsAppFeaturesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAppFeaturesView.swift; sourceTree = "<group>"; };
 		AA000102000000000000010D /* AppFeaturesCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeaturesCatalog.swift; sourceTree = "<group>"; };
@@ -354,6 +356,7 @@
 				AA0001020000000000000106 /* HomeCatalogListChrome.swift */,
 				AA0001020000000000000108 /* HomeFirstVisitExplainerView.swift */,
 				AA000102000000000000010A /* WelcomeExplainerOverlay.swift */,
+				AA0001010000000000000F04 /* HouseholdJoiningOverlay.swift */,
 				AA000101000000000000007B /* StoreGesturesExplainerOverlay.swift */,
 				AA0001010000000000000054 /* QuantityPillMaterialStyle.swift */,
 				AA0001010000000000000074 /* ExpandableQuantityPill.swift */,
@@ -626,6 +629,7 @@
 				AA0000690000000000000069 /* HomeFirstVisitExplainerView.swift in Sources */,
 				AA00006A000000000000006A /* AppWelcomeExplainer.swift in Sources */,
 				AA00006B000000000000006B /* WelcomeExplainerOverlay.swift in Sources */,
+				AA00000F040000000000F004 /* HouseholdJoiningOverlay.swift in Sources */,
 				AA00007A000000000000007A /* AppStoreGesturesExplainer.swift in Sources */,
 				AA00007B000000000000007B /* StoreGesturesExplainerOverlay.swift in Sources */,
 				AA00007C000000000000007C /* AppHomeCatalogVisit.swift in Sources */,

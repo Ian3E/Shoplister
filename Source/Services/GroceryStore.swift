@@ -1400,6 +1400,20 @@ final class GroceryStore: ObservableObject {
         )
     }
 
+    /// True when the active library has anything the person made: shopping list or saved lists,
+    /// photos, or items beyond the starter library. Used to decide whether joining a household
+    /// should warn and offer a backup.
+    var hasOwnLibraryContent: Bool {
+        let bundle = activeBundle
+        if !bundle.shopping.isEmpty || !bundle.recipes.isEmpty { return true }
+        if bundle.catalog.contains(where: \.hasImage) { return true }
+        let seedItems = currentContentLanguage() == .hebrew
+            ? BilingualSeedCatalog.hebrewSeedItems
+            : BilingualSeedCatalog.englishSeedItems
+        let seedNames = Set(seedItems.map(\.name))
+        return bundle.catalog.contains { !seedNames.contains($0.name) }
+    }
+
     // MARK: - iCloud sync (Phase 1c)
 
     /// Library objects downloaded from iCloud, to merge into the active language's library.

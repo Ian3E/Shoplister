@@ -175,17 +175,24 @@ struct ShoplisterApp: App {
                         set: { if !$0 { sync.pendingHouseholdInvite = nil } }
                     )
                 ) {
-                    Button(LocalizedCopy.join, role: .destructive) {
+                    // Not red: the message already explains the replacement, and Back Up First is offered.
+                    Button(LocalizedCopy.join) {
                         sync.joinHousehold()
                     }
-                    Button(LocalizedCopy.backUpFirst) {
-                        sync.backUpBeforeJoining()
+                    .keyboardShortcut(.defaultAction)
+                    if sync.pendingHouseholdInvite?.hasOwnLists ?? true {
+                        Button(LocalizedCopy.backUpFirst) {
+                            sync.backUpBeforeJoining()
+                        }
                     }
                     Button(LocalizedCopy.cancel, role: .cancel) {
                         sync.pendingHouseholdInvite = nil
                     }
                 } message: {
-                    Text(LocalizedCopy.joinHouseholdMessage(ownerName: sync.pendingHouseholdInvite?.ownerName))
+                    Text(LocalizedCopy.joinHouseholdMessage(
+                        ownerName: sync.pendingHouseholdInvite?.ownerName,
+                        hasOwnLists: sync.pendingHouseholdInvite?.hasOwnLists ?? true
+                    ))
                 }
                 .alert(
                     LocalizedCopy.householdEndedTitle,
@@ -206,19 +213,12 @@ struct ShoplisterApp: App {
                     Text(LocalizedCopy.couldNotJoinHouseholdMessage)
                 }
                 .overlay {
-                    if sync.isJoiningHousehold {
-                        HStack(spacing: 10) {
-                            ProgressView()
-                            Text(LocalizedCopy.joiningHousehold)
-                                .font(.subheadline.weight(.medium))
+                    if let progress = sync.householdJoinProgress {
+                        HouseholdJoiningOverlay(isFinished: progress == .finished) {
+                            sync.householdJoinProgress = nil
                         }
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 12)
-                        .glassEffect(.regular, in: Capsule(style: .continuous))
-                        .transition(.opacity)
                     }
                 }
-                .animation(.default, value: sync.isJoiningHousehold)
         }
     }
 

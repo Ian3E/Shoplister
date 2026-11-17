@@ -61,11 +61,23 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         let metadata: CKShare.Metadata
         /// Inviter's name as iCloud reports it, if available.
         let ownerName: String?
+        /// This phone has lists of the person's own, so joining would replace something worth keeping:
+        /// the prompt warns and offers Back Up First. Fresh installs get a simpler prompt.
+        let hasOwnLists: Bool
     }
 
     @Published var pendingHouseholdInvite: HouseholdInvite?
     /// Accepting an invite and downloading the household's lists.
-    @Published private(set) var isJoiningHousehold = false
+    enum HouseholdJoinProgress {
+        /// Invite accepted; the household's lists are downloading.
+        case joining
+        /// Download applied; the card's button becomes Done.
+        case finished
+    }
+
+    /// Drives the centered joining card; set to nil when the card is dismissed.
+    @Published var householdJoinProgress: HouseholdJoinProgress?
+    var isJoiningHousehold: Bool { householdJoinProgress == .joining }
     /// Accepting the invite failed (alert at the app root).
     @Published var householdJoinFailed = false
     /// Removing this member from the household in iCloud (Leave Household).
@@ -272,7 +284,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         systemFieldsByRecordName = [:]
         isReplacingLocalLibrary = false
         replacementBuffer = []
-        isJoiningHousehold = false
+        householdJoinProgress = nil
         enablePrompt = notice
         turnSwitchOff()
     }
@@ -389,20 +401,24 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             fetchNow()
             return
         }
-        pendingHouseholdInvite = HouseholdInvite(metadata: metadata, ownerName: ownerName)
+        pendingHouseholdInvite = HouseholdInvite(
+            metadata: metadata,
+            ownerName: ownerName,
+            hasOwnLists: store?.hasOwnLibraryContent ?? true
+        )
     }
 
     /// "Join" in the invite prompt: accept, switch to the owner's shared zone, download everything.
     func joinHousehold() {
         guard let invite = pendingHouseholdInvite, !isJoiningHousehold else { return }
         pendingHouseholdInvite = nil
-        isJoiningHousehold = true
+        householdJoinProgress = .joining
         Task {
             do {
                 _ = try await container.accept(invite.metadata)
             } catch {
                 logger.error("Couldn't accept household invite: \(error.localizedDescription)")
-                isJoiningHousehold = false
+                householdJoinProgress = nil
                 householdJoinFailed = true
                 return
             }
@@ -533,13 +549,14 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
         do {
             let share: CKShare
             if let existing = try await fetchHouseholdShare() {
-                share = existing
+                share = await refreshShareAppearanceIfNeeded(existing)
             } else {
                 share = try await createHouseholdShare()
             }
             householdShare = share
             guard let presenter = Self.topPresenter() else { return }
-            let controller = UICloudSharingController(share: share, container: container)
+            let controller = HouseholdSharingController(share: share, container: container)
+            controller.onClose = { [weak self] in self?.householdSharingScreenClosed() }
             // Invite-only (no public link), and invited people can edit.
             controller.availablePermissions = [.allowPrivate, .allowReadWrite]
             let delegate = HouseholdSharingDelegate(service: self)
@@ -564,6 +581,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
     private func createHouseholdShare() async throws -> CKShare {
         let share = CKShare(recordZoneID: Self.zoneID)
         share[CKShare.SystemFieldKey.title] = LocalizedCopy.householdShareTitle
+        share[CKShare.SystemFieldKey.thumbnailImageData] = Self.householdThumbnailData
         share.publicPermission = .none
         let result = try await container.privateCloudDatabase.modifyRecords(saving: [share], deleting: [])
         guard let saved = try result.saveResults[share.recordID]?.get() as? CKShare else {
@@ -575,6 +593,92 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
     fileprivate func householdShareDidChange(_ share: CKShare?) {
         householdShare = share
+    }
+
+    /// The app icon with a people badge: the picture for the household on Apple's sharing screens.
+    static let householdThumbnailData: Data? = {
+        guard let icon = UIImage(named: "AboutAppIconPreview") else { return nil }
+        let canvas: CGFloat = 300
+        let iconRect = CGRect(x: 10, y: 10, width: 240, height: 240)
+        let badgeDiameter: CGFloat = 120
+        let badgeRect = CGRect(
+            x: iconRect.maxX - badgeDiameter / 2,
+            y: iconRect.maxY - badgeDiameter / 2,
+            width: badgeDiameter,
+            height: badgeDiameter
+        ).offsetBy(dx: -10, dy: -10)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 2
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: canvas, height: canvas), format: format)
+        let image = renderer.image { _ in
+            // App icon, rounded like on the Home Screen.
+            UIBezierPath(roundedRect: iconRect, cornerRadius: iconRect.width * 0.2237).addClip()
+            icon.draw(in: iconRect)
+            UIGraphicsGetCurrentContext()?.resetClip()
+
+            // Badge: white ring around an icon-blue circle with the people symbol.
+            UIColor.white.setFill()
+            UIBezierPath(ovalIn: badgeRect).fill()
+            AppIconBackdrop.uiColor.setFill()
+            UIBezierPath(ovalIn: badgeRect.insetBy(dx: 7, dy: 7)).fill()
+            let configuration = UIImage.SymbolConfiguration(pointSize: 44, weight: .semibold)
+            if let symbol = UIImage(systemName: "person.2.fill", withConfiguration: configuration)?
+                .withTintColor(.white, renderingMode: .alwaysOriginal)
+            {
+                let size = symbol.size
+                symbol.draw(in: CGRect(
+                    x: badgeRect.midX - size.width / 2,
+                    y: badgeRect.midY - size.height / 2,
+                    width: size.width,
+                    height: size.height
+                ))
+            }
+        }
+        return image.pngData()
+    }()
+
+    /// Older households were created with a different title and no picture; bring them up to date so
+    /// the "Shared Household" management screen shows the badge icon. Failure isn't important.
+    private func refreshShareAppearanceIfNeeded(_ share: CKShare) async -> CKShare {
+        let title = LocalizedCopy.householdShareTitle
+        let currentTitle = share[CKShare.SystemFieldKey.title] as? String
+        let hasThumbnail = (share[CKShare.SystemFieldKey.thumbnailImageData] as? Data) != nil
+        guard currentTitle != title || !hasThumbnail else { return share }
+        share[CKShare.SystemFieldKey.title] = title
+        share[CKShare.SystemFieldKey.thumbnailImageData] = Self.householdThumbnailData
+        do {
+            let result = try await container.privateCloudDatabase.modifyRecords(saving: [share], deleting: [])
+            if let saved = try result.saveResults[share.recordID]?.get() as? CKShare {
+                return saved
+            }
+        } catch {
+            logger.info("Couldn't update household share appearance: \(error.localizedDescription)")
+        }
+        return share
+    }
+
+    /// Apple's sharing screen closed. If nobody was invited (the person opened it and tapped X),
+    /// delete the empty household so "Create shared household" means what it says.
+    fileprivate func householdSharingScreenClosed() {
+        Task {
+            do {
+                guard let share = try await fetchHouseholdShare() else {
+                    householdShare = nil
+                    return
+                }
+                let others = share.participants.filter { $0.role != .owner }
+                guard others.isEmpty else {
+                    householdShare = share
+                    return
+                }
+                _ = try await container.privateCloudDatabase.modifyRecords(saving: [], deleting: [share.recordID])
+                householdShare = nil
+                logger.info("Removed household with no invited people")
+            } catch {
+                logger.info("Couldn't check for an empty household: \(error.localizedDescription)")
+            }
+        }
     }
 
     private static func topPresenter() -> UIViewController? {
@@ -751,7 +855,9 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             store.applyContentLanguageFromUserDefaults()
         }
         store.applySyncedChanges(Self.libraryChanges(from: records), replacingActiveLibrary: true)
-        isJoiningHousehold = false
+        if householdJoinProgress == .joining {
+            householdJoinProgress = .finished
+        }
         logger.info("Replaced local library with \(records.count) records from iCloud")
     }
 
@@ -1061,11 +1167,30 @@ private final class HouseholdSharingDelegate: NSObject, UICloudSharingController
         LocalizedCopy.householdShareTitle
     }
 
+    /// Header picture on Apple's share sheet: the app icon with a people badge.
+    func itemThumbnailData(for csc: UICloudSharingController) -> Data? {
+        SyncService.householdThumbnailData
+    }
+
     func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
         service?.householdShareDidChange(csc.share)
     }
 
     func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
         service?.householdShareDidChange(nil)
+    }
+}
+
+/// Apple's sharing screen, plus a callback when it closes (it has no delegate method for that).
+private final class HouseholdSharingController: UICloudSharingController {
+    var onClose: (() -> Void)?
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        // Only when the screen itself goes away, not when Messages/Mail opens on top of it.
+        if isBeingDismissed || presentingViewController == nil {
+            onClose?()
+            onClose = nil
+        }
     }
 }

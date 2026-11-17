@@ -79,7 +79,7 @@ enum LocalizedCopy {
     // MARK: - Settings
 
     static var settingsItemLibrary: String {
-        tabLibrary
+        String(localized: "Library", comment: "Settings row and screen title for the item library")
     }
 
     static var settingsAbout: String {
@@ -522,7 +522,20 @@ enum LocalizedCopy {
         String(localized: "Join Household?", comment: "Alert title when opening a household invite")
     }
 
-    static func joinHouseholdMessage(ownerName: String?) -> String {
+    static func joinHouseholdMessage(ownerName: String?, hasOwnLists: Bool) -> String {
+        guard hasOwnLists else {
+            // Fresh install: nothing of their own to replace, so no warning.
+            if let ownerName {
+                return String(
+                    localized: "\(ownerName) invited you to share Shoplister lists.",
+                    comment: "Join household alert message on a phone with no lists of its own; %@ is the inviter's name"
+                )
+            }
+            return String(
+                localized: "You've been invited to share Shoplister lists.",
+                comment: "Join household alert message on a phone with no lists of its own, inviter unknown"
+            )
+        }
         if let ownerName {
             return String(
                 localized: "\(ownerName) invited you to share Shoplister lists. Joining replaces the lists on this iPhone with the household's lists.",
@@ -537,10 +550,6 @@ enum LocalizedCopy {
 
     static var join: String {
         String(localized: "Join", comment: "Alert button: join the household")
-    }
-
-    static var joiningHousehold: String {
-        String(localized: "Joining household…", comment: "Progress message while joining a household")
     }
 
     static var couldNotJoinHouseholdTitle: String {
@@ -641,12 +650,44 @@ enum LocalizedCopy {
         String(localized: "Household", comment: "Settings section title for household sharing")
     }
 
-    static var invitePeople: String {
-        String(localized: "Invite People", comment: "Settings button: invite people to the household")
+    static var createSharedHousehold: String {
+        String(localized: "Create shared household", comment: "Settings button: create the household share and invite people")
     }
 
-    static var manageHousehold: String {
-        String(localized: "Manage Household", comment: "Settings button: manage household members")
+    static var manageSharedHousehold: String {
+        String(localized: "Manage shared household", comment: "Settings button: manage household members")
+    }
+
+    static var householdNeedsSyncFooter: String {
+        String(
+            localized: "Turn on iCloud Sync to share your lists with your household.",
+            comment: "Settings Household section footer while iCloud Sync is off"
+        )
+    }
+
+    static var joining: String {
+        String(localized: "Joining", comment: "Disabled button while joining a household")
+    }
+
+    static var householdJoiningTipLists: String {
+        String(
+            localized: "Your shopping list and saved lists are now shared with everyone in the household.",
+            comment: "Joining household card: lists are shared"
+        )
+    }
+
+    static var householdJoiningTipLibrary: String {
+        String(
+            localized: "Your item library is shared too, so new items and sections show up for everyone.",
+            comment: "Joining household card: library is shared"
+        )
+    }
+
+    static var householdJoiningTipSync: String {
+        String(
+            localized: "Changes sync automatically across everyone's devices.",
+            comment: "Joining household card: changes sync automatically"
+        )
     }
 
     static var householdFooter: String {
@@ -657,7 +698,7 @@ enum LocalizedCopy {
     }
 
     static var householdShareTitle: String {
-        String(localized: "Shoplister Household", comment: "Title of the household invite shown to invited people")
+        String(localized: "Shared Household", comment: "Title of the household invite and the joining card")
     }
 
     static var couldNotOpenHouseholdTitle: String {

@@ -25,8 +25,8 @@ struct SettingsView: View {
         NavigationStack(path: $navigationPath) {
             List {
                 Section {
-                    settingsLink(.shoppingList, title: LocalizedCopy.shoppingListSectionTitle, systemImage: "checklist")
                     settingsLink(.itemLibrary, title: LocalizedCopy.settingsItemLibrary, systemImage: "square.grid.2x2.fill")
+                    settingsLink(.shoppingList, title: LocalizedCopy.shoppingListSectionTitle, systemImage: "checklist")
                     settingsLink(.appearance, title: LocalizedCopy.appearance, systemImage: "paintbrush.fill")
                     settingsLink(.device, title: LocalizedCopy.device, systemImage: "iphone")
                     settingsLink(.about, title: LocalizedCopy.settingsAbout, systemImage: "info.circle.fill")

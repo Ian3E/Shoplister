@@ -112,6 +112,11 @@ struct SettingsItemLibraryView: View {
         )
     }
 
+    /// Household sharing needs iCloud Sync on and an iCloud account ready.
+    private var canUseHousehold: Bool {
+        iCloudSyncEnabled && iCloudAccount.status == .available
+    }
+
     /// Phase 2e: household members can't do the library-wide actions that would wipe everyone's lists.
     private var isOwnerOnlyLocked: Bool {
         iCloudSyncEnabled && SyncService.isHouseholdMember
@@ -163,10 +168,7 @@ struct SettingsItemLibraryView: View {
 
             if iCloudSyncEnabled, iCloudAccount.status == .available, SyncService.isHouseholdMember {
                 Section {
-                    Label(
-                        LocalizedCopy.householdMemberOf(ownerName: SyncService.householdOwnerDisplayName),
-                        systemImage: "person.2"
-                    )
+                    Text(LocalizedCopy.householdMemberOf(ownerName: SyncService.householdOwnerDisplayName))
                     Button(role: .destructive) {
                         isConfirmingLeaveHousehold = true
                     } label: {
@@ -197,23 +199,23 @@ struct SettingsItemLibraryView: View {
                 } footer: {
                     Text(LocalizedCopy.householdMemberFooter)
                 }
-            } else if iCloudSyncEnabled, iCloudAccount.status == .available {
+            } else {
+                // Shown even with sync off (greyed out) so people can discover the feature.
                 Section {
                     Button {
                         Task { await sync.presentHouseholdSharing() }
                     } label: {
                         HStack {
-                            Label(
-                                sync.householdShare == nil ? LocalizedCopy.invitePeople : LocalizedCopy.manageHousehold,
-                                systemImage: "person.2"
-                            )
+                            Text(sync.householdShare == nil
+                                ? LocalizedCopy.createSharedHousehold
+                                : LocalizedCopy.manageSharedHousehold)
                             if sync.isPreparingHouseholdSharing {
                                 Spacer()
                                 ProgressView()
                             }
                         }
                     }
-                    .disabled(sync.isPreparingHouseholdSharing)
+                    .disabled(!canUseHousehold || sync.isPreparingHouseholdSharing)
                     .task { await sync.refreshHouseholdShare() }
                     .alert(LocalizedCopy.couldNotOpenHouseholdTitle, isPresented: $sync.householdSharingFailed) {
                         Button(LocalizedCopy.ok, role: .cancel) {}
@@ -223,26 +225,33 @@ struct SettingsItemLibraryView: View {
                 } header: {
                     Text(LocalizedCopy.household)
                 } footer: {
-                    Text(LocalizedCopy.householdFooter)
+                    Text(canUseHousehold ? LocalizedCopy.householdFooter : LocalizedCopy.householdNeedsSyncFooter)
                 }
             }
 
             Section {
-                Picker(LocalizedCopy.libraryLanguage, selection: $catalogLanguagePickerValue) {
-                    ForEach(AppContentLanguage.allCases) { option in
-                        Text(option.title)
-                            .tag(option.rawValue)
-                            .contentTransition(.identity)
+                if isOwnerOnlyLocked {
+                    // A disabled menu Picker still opens on tap, so members get a plain, greyed-out row.
+                    LabeledContent(LocalizedCopy.libraryLanguage) {
+                        Text((AppContentLanguage(rawValue: catalogLanguageRaw) ?? .english).title)
+                    }
+                    .foregroundStyle(.secondary)
+                } else {
+                    Picker(LocalizedCopy.libraryLanguage, selection: $catalogLanguagePickerValue) {
+                        ForEach(AppContentLanguage.allCases) { option in
+                            Text(option.title)
+                                .tag(option.rawValue)
+                                .contentTransition(.identity)
+                        }
+                    }
+                    .onChange(of: catalogLanguagePickerValue) { _, newValue in
+                        if newValue == catalogLanguageRaw {
+                            pendingCatalogLanguageRaw = nil
+                            return
+                        }
+                        pendingCatalogLanguageRaw = newValue
                     }
                 }
-                .onChange(of: catalogLanguagePickerValue) { _, newValue in
-                    if newValue == catalogLanguageRaw {
-                        pendingCatalogLanguageRaw = nil
-                        return
-                    }
-                    pendingCatalogLanguageRaw = newValue
-                }
-                .disabled(isOwnerOnlyLocked)
             } footer: {
                 Text(isOwnerOnlyLocked ? LocalizedCopy.ownerOnlyLanguageFooter : LocalizedCopy.libraryLanguageFooter)
             }
