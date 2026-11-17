@@ -61,11 +61,25 @@ struct AppFeatureCatalogEntry: Identifiable {
                 description: LocalizedCopy.appFeaturePullDownToAddDescription
             ),
             AppFeatureCatalogEntry(
+                id: "plusMenu",
+                section: .shoppingList,
+                systemImage: "plus.circle.fill",
+                title: LocalizedCopy.appFeaturePlusMenuTitle,
+                description: LocalizedCopy.appFeaturePlusMenuDescription
+            ),
+            AppFeatureCatalogEntry(
                 id: "pullUpClearChecked",
                 section: .shoppingList,
                 systemImage: "arrow.up.circle.fill",
                 title: LocalizedCopy.appFeaturePullUpClearCheckedTitle,
                 description: LocalizedCopy.appFeaturePullUpClearCheckedDescription
+            ),
+            AppFeatureCatalogEntry(
+                id: "clearWhenDone",
+                section: .shoppingList,
+                systemImage: "checklist.checked",
+                title: LocalizedCopy.appFeatureClearWhenDoneTitle,
+                description: LocalizedCopy.appFeatureClearWhenDoneDescription
             ),
             AppFeatureCatalogEntry(
                 id: "pinchSections",
@@ -101,6 +115,13 @@ struct AppFeatureCatalogEntry: Identifiable {
                 systemImage: "rectangle.compress.vertical",
                 title: LocalizedCopy.hideSectionNames,
                 description: LocalizedCopy.appFeatureHideSectionNamesDescription
+            ),
+            AppFeatureCatalogEntry(
+                id: "shortcutToAllItems",
+                section: .shoppingList,
+                systemImage: "square.grid.2x2",
+                title: LocalizedCopy.shortcutToAllItems,
+                description: LocalizedCopy.appFeatureShortcutToAllItemsDescription
             ),
             AppFeatureCatalogEntry(
                 id: "homeSections",
@@ -178,6 +199,20 @@ struct AppFeatureCatalogEntry: Identifiable {
                 systemImage: "iphone.gen3",
                 title: LocalizedCopy.appFeatureDeviceOptionsTitle,
                 description: LocalizedCopy.appFeatureDeviceOptionsDescription
+            ),
+            AppFeatureCatalogEntry(
+                id: "iCloudSync",
+                section: .dataSharing,
+                systemImage: "icloud.fill",
+                title: LocalizedCopy.iCloudSync,
+                description: LocalizedCopy.appFeatureICloudSyncDescription
+            ),
+            AppFeatureCatalogEntry(
+                id: "sharedHousehold",
+                section: .dataSharing,
+                systemImage: "person.2.fill",
+                title: LocalizedCopy.appFeatureSharedHouseholdTitle,
+                description: LocalizedCopy.appFeatureSharedHouseholdDescription
             ),
             AppFeatureCatalogEntry(
                 id: "libraryLanguage",

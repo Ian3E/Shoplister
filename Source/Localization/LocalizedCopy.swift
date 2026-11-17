@@ -106,12 +106,61 @@ enum LocalizedCopy {
         String(localized: "Tips & features", comment: "Tips and feature guide row and screen title on About screen")
     }
 
+    // MARK: - Tips & features (1.3)
+
+    static var appFeatureICloudSyncDescription: String {
+        String(
+            localized: "Keep your library, shopping list, saved lists, and photos the same on all your devices. Turn it on in Settings → Library.",
+            comment: "Tips & features: iCloud Sync description"
+        )
+    }
+
+    static var appFeatureSharedHouseholdTitle: String {
+        String(localized: "Shared household", comment: "Tips & features: shared household title")
+    }
+
+    static var appFeatureSharedHouseholdDescription: String {
+        String(
+            localized: "Share your lists with the people you shop with. Everyone sees changes as they happen. Create one in Settings → Library.",
+            comment: "Tips & features: shared household description"
+        )
+    }
+
+    static var appFeaturePlusMenuTitle: String {
+        String(localized: "+ menu", comment: "Tips & features: long-press menu on the + button, title")
+    }
+
+    static var appFeaturePlusMenuDescription: String {
+        String(
+            localized: "Touch and hold + for quick access to Add item, All Items, Saved lists, and Create item.",
+            comment: "Tips & features: long-press menu on the + button, description"
+        )
+    }
+
+    static var appFeatureClearWhenDoneTitle: String {
+        String(localized: "Clear when done", comment: "Tips & features: clear list when everything is checked, title")
+    }
+
+    static var appFeatureClearWhenDoneDescription: String {
+        String(
+            localized: "When every item is checked off, Shoplister offers to clear the list. Turn off “Confirm before clearing list” in Settings to clear automatically.",
+            comment: "Tips & features: clear list when everything is checked, description"
+        )
+    }
+
+    static var appFeatureShortcutToAllItemsDescription: String {
+        String(
+            localized: "Make + open All Items directly. Pulling down still opens Add item (enable in Settings).",
+            comment: "Tips & features: Shortcut to All Items description"
+        )
+    }
+
     static var appFeaturesShoppingListSection: String {
         String(localized: "Shopping list", comment: "App features section header for shopping list features")
     }
 
     static var appFeaturesItemLibrarySection: String {
-        String(localized: "Item library", comment: "App features section header for item library features")
+        settingsItemLibrary
     }
 
     static var appFeaturesSavedListsSection: String {
@@ -123,7 +172,7 @@ enum LocalizedCopy {
     }
 
     static var appFeaturesDataSharingSection: String {
-        String(localized: "Data & sharing", comment: "App features section header for data and sharing features")
+        String(localized: "Sync & sharing", comment: "App features section header for data and sharing features")
     }
 
     // MARK: App features — Shopping list
@@ -145,7 +194,7 @@ enum LocalizedCopy {
 
     static var appFeaturePullDownToAddDescription: String {
         String(
-            localized: "Pull down on the shopping list to search your library and quickly add items without leaving the list.",
+            localized: "Tap + or pull down on the shopping list to search your library and quickly add items without leaving the list.",
             comment: "App feature description: pull down to add items"
         )
     }
@@ -162,12 +211,12 @@ enum LocalizedCopy {
     }
 
     static var appFeatureLongPressTitle: String {
-        String(localized: "Long press", comment: "App feature title: long press shopping list row")
+        String(localized: "Touch and hold", comment: "App feature title: long press shopping list row")
     }
 
     static var appFeatureLongPressDescription: String {
         String(
-            localized: "Long press an item to adjust quantity. You can also quickly move the item to another store section, or edit/remove the item. If the item has a photo, you will see a preview.",
+            localized: "Touch and hold an item to adjust quantity. You can also quickly move the item to another store section, or edit/remove the item. If the item has a photo, you will see a preview.",
             comment: "App feature description: long press shopping list row"
         )
     }
@@ -256,7 +305,7 @@ enum LocalizedCopy {
 
     static var appFeatureSearchOrCreateDescription: String {
         String(
-            localized: "Search your library from Home or the Store. Create a new item when nothing matches.",
+            localized: "Search your library from Add item or All Items. Create a new item when nothing matches.",
             comment: "App feature description: search or create items"
         )
     }
@@ -267,7 +316,7 @@ enum LocalizedCopy {
 
     static var appFeatureEditDescription: String {
         String(
-            localized: "Edit or reorder items, select multiple items to move or delete, and manage sections from the Edit menu.",
+            localized: "Edit or reorder items, select multiple items to move or delete, and manage sections from the Edit menu in All Items.",
             comment: "App feature description: edit item library"
         )
     }
@@ -345,7 +394,7 @@ enum LocalizedCopy {
 
     static var appFeatureLibraryLanguageDescription: String {
         String(
-            localized: "Switch the item library between English and Hebrew. App menus follow your phone language.",
+            localized: "Switch the item library between English and Hebrew. App menus follow your phone language. In a shared household, only the owner can change it.",
             comment: "App feature description: library language"
         )
     }
@@ -356,7 +405,7 @@ enum LocalizedCopy {
 
     static var appFeatureBackupDescription: String {
         String(
-            localized: "Export your library, sections, recipes, and item photos as a zip file. Import to restore or move to another device.",
+            localized: "Export your library, sections, saved lists, and item photos as a zip file. Import to restore or move to another device.",
             comment: "App feature description: library backup export and import"
         )
     }

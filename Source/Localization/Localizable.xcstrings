@@ -4,336 +4,6 @@
     "" : {
 
     },
-    "Back Up First" : {
-      "comment" : "Alert button: cancel turning on sync and export a backup",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "גיבוי תחילה"
-          }
-        }
-      }
-    },
-    "Changes sync automatically across everyone's devices." : {
-      "comment" : "Joining household card: changes sync automatically",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "השינויים מסתנכרנים אוטומטית בין המכשירים של כולם."
-          }
-        }
-      }
-    },
-    "Checking iCloud…" : {
-      "comment" : "iCloud Sync status: checking account",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "בודק את iCloud…"
-          }
-        }
-      }
-    },
-    "Check your internet connection and try turning on iCloud Sync again." : {
-      "comment" : "Alert message when checking iCloud before enabling sync fails",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "בדקו את החיבור לאינטרנט ונסו להפעיל שוב את סנכרון iCloud."
-          }
-        }
-      }
-    },
-    "Couldn't check iCloud. Try again later." : {
-      "comment" : "iCloud Sync status: could not determine",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "לא ניתן לבדוק את iCloud. נסו שוב מאוחר יותר."
-          }
-        }
-      }
-    },
-    "Couldn't Join Household" : {
-      "comment" : "Alert title when accepting an invite fails",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "לא ניתן להצטרף למשק הבית"
-          }
-        }
-      }
-    },
-    "Couldn't Leave Household" : {
-      "comment" : "Alert title when leaving the household fails",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "לא ניתן לעזוב את משק הבית"
-          }
-        }
-      }
-    },
-    "Couldn't Open Household" : {
-      "comment" : "Alert title when household sharing fails to open",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "לא ניתן לפתוח את משק הבית"
-          }
-        }
-      }
-    },
-    "Couldn't Reach iCloud" : {
-      "comment" : "Alert title when checking iCloud before enabling sync fails",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "לא ניתן להתחבר ל-iCloud"
-          }
-        }
-      }
-    },
-    "Everyone in the household sees and edits the same lists." : {
-      "comment" : "Settings Household section footer for members",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "כל חברי משק הבית רואים ועורכים את אותן רשימות."
-          }
-        }
-      }
-    },
-    "Household" : {
-      "comment" : "Settings section title for household sharing",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "משק בית"
-          }
-        }
-      }
-    },
-    "Household Sharing Ended" : {
-      "comment" : "Alert title when a member was removed or sharing stopped",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "שיתוף משק הבית הסתיים"
-          }
-        }
-      }
-    },
-    "iCloud already has a library. The items, sections, shopping list, and saved lists on this device will be replaced with it." : {
-      "comment" : "Alert message when turning on iCloud Sync and iCloud already has a library",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "כבר קיימת ספרייה ב-iCloud. הפריטים, הקבוצות, רשימת הקניות והרשימות השמורות במכשיר זה יוחלפו בה."
-          }
-        }
-      }
-    },
-    "iCloud isn't available on this device." : {
-      "comment" : "iCloud Sync status: restricted (e.g. parental controls)",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloud אינו זמין במכשיר זה."
-          }
-        }
-      }
-    },
-    "iCloud is temporarily unavailable. Sync will resume automatically." : {
-      "comment" : "iCloud Sync status: temporarily unavailable",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloud אינו זמין זמנית. הסנכרון יתחדש אוטומטית."
-          }
-        }
-      }
-    },
-    "iCloud Sync" : {
-      "comment" : "Toggle: sync library and shopping list through iCloud",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "סנכרון iCloud"
-          }
-        }
-      }
-    },
-    "iCloud Sync is on, so this also applies to everyone in your household." : {
-      "comment" : "Extra line in destructive library alerts when the owner has invited people",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "סנכרון iCloud מופעל, ולכן הפעולה תחול גם על כל חברי משק הבית."
-          }
-        }
-      }
-    },
-    "iCloud Sync is on, so this also applies to your other devices." : {
-      "comment" : "Extra line in destructive library alerts while iCloud Sync is on",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "סנכרון iCloud מופעל, ולכן הפעולה תחול גם על המכשירים האחרים שלכם."
-          }
-        }
-      }
-    },
-    "iCloud Sync Turned Off" : {
-      "comment" : "Alert title when sync turns itself off",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "סנכרון iCloud כובה"
-          }
-        }
-      }
-    },
-    "%@ invited you to share Shoplister lists." : {
-      "comment" : "Join household alert message on a phone with no lists of its own; %@ is the inviter's name",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "התקבלה הזמנה מאת %@ לשתף רשימות Shoplister."
-          }
-        }
-      }
-    },
-    "%@ invited you to share Shoplister lists. Joining replaces the lists on this iPhone with the household's lists." : {
-      "comment" : "Join household alert message; %@ is the inviter's name",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "התקבלה הזמנה מאת %@ לשתף רשימות Shoplister. ההצטרפות תחליף את הרשימות באייפון זה ברשימות של משק הבית."
-          }
-        }
-      }
-    },
-    "Create shared household" : {
-      "comment" : "Settings button: create the household share and invite people",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "יצירת משק בית משותף"
-          }
-        }
-      }
-    },
-    "Invite people to share your lists. Everyone in the household sees and edits the same lists." : {
-      "comment" : "Settings Household section footer",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "הזמינו אנשים לשתף את הרשימות שלכם. כל חברי משק הבית רואים ועורכים את אותן רשימות."
-          }
-        }
-      }
-    },
-    "Join" : {
-      "comment" : "Alert button: join the household",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "הצטרפות"
-          }
-        }
-      }
-    },
-    "Join Household?" : {
-      "comment" : "Alert title when opening a household invite",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "להצטרף למשק הבית?"
-          }
-        }
-      }
-    },
-    "Joining" : {
-      "comment" : "Disabled button while joining a household",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "מצטרפים"
-          }
-        }
-      }
-    },
-    "Keep your library and shopping list in sync on all your devices signed in to the same Apple ID." : {
-      "comment" : "Footer under iCloud Sync toggle",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "שמירה על הספרייה ורשימת הקניות מסונכרנות בכל המכשירים המחוברים לאותו Apple ID."
-          }
-        }
-      }
-    },
-    "Leave" : {
-      "comment" : "Alert button: leave the household",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "עזיבה"
-          }
-        }
-      }
-    },
-    "Leave Household" : {
-      "comment" : "Settings button for members: leave the household",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "עזיבת משק הבית"
-          }
-        }
-      }
-    },
-    "Leave Household?" : {
-      "comment" : "Confirm alert title before leaving the household",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "לעזוב את משק הבית?"
-          }
-        }
-      }
-    },
     ", %lld unchecked" : {
       "comment" : "Accessibility suffix for collapsed section with unchecked count",
       "localizations" : {
@@ -356,138 +26,6 @@
         }
       }
     },
-    "Make sure you're online and iCloud Sync says Up to date, then try again." : {
-      "comment" : "Alert message when household sharing fails to open",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ודאו שאתם מחוברים לאינטרנט ושסנכרון iCloud מציג ״מעודכן״, ונסו שוב."
-          }
-        }
-      }
-    },
-    "Make sure you're online, then tap the invite link again." : {
-      "comment" : "Alert message when accepting an invite fails",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ודאו שאתם מחוברים לאינטרנט, ואז הקישו שוב על קישור ההזמנה."
-          }
-        }
-      }
-    },
-    "Make sure you're online, then try again." : {
-      "comment" : "Alert message when leaving the household fails",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ודאו שאתם מחוברים לאינטרנט ונסו שוב."
-          }
-        }
-      }
-    },
-    "Manage shared household" : {
-      "comment" : "Settings button: manage household members",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ניהול משק הבית המשותף"
-          }
-        }
-      }
-    },
-    "Member of a household" : {
-      "comment" : "Settings Household row for members, owner name unknown",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "חברים במשק בית"
-          }
-        }
-      }
-    },
-    "Member of %@'s household" : {
-      "comment" : "Settings Household row for members; %@ is the owner's name",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "חברים במשק הבית של %@"
-          }
-        }
-      }
-    },
-    "Only the household owner can change the library language." : {
-      "comment" : "Settings footer for household members under the library language picker",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "רק הבעלים של משק הבית יכולים לשנות את שפת הספרייה."
-          }
-        }
-      }
-    },
-    "Only the household owner can clear the library." : {
-      "comment" : "Settings footer for household members under Clear library",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "רק הבעלים של משק הבית יכולים לנקות את הספרייה."
-          }
-        }
-      }
-    },
-    "Only the household owner can import a backup." : {
-      "comment" : "Settings footer for household members under Backup",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "רק הבעלים של משק הבית יכולים לייבא גיבוי."
-          }
-        }
-      }
-    },
-    "Replace This Device's Library?" : {
-      "comment" : "Alert title when turning on iCloud Sync and iCloud already has a library",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "להחליף את הספרייה במכשיר זה?"
-          }
-        }
-      }
-    },
-    "Shared Household" : {
-      "comment" : "Title of the household invite and the joining card",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "משק בית משותף"
-          }
-        }
-      }
-    },
-    "Shoplister's data was removed from iCloud. Your lists are still on this device. Turn on iCloud Sync again to upload them." : {
-      "comment" : "Alert message: sync turned off after the app's iCloud data was deleted",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "הנתונים של Shoplister הוסרו מ-iCloud. הרשימות שלכם עדיין במכשיר זה. הפעילו שוב את סנכרון iCloud כדי להעלות אותן."
-          }
-        }
-      }
-    },
     "“[shopping_sections]” must list at least one section." : {
       "comment" : "Backup import error when shopping sections list is empty",
       "localizations" : {
@@ -499,94 +37,6 @@
         }
       }
     },
-    "Some changes couldn't sync. Try turning iCloud Sync off and on again." : {
-      "comment" : "iCloud Sync status: a send failed permanently",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "חלק מהשינויים לא סונכרנו. נסו לכבות ולהפעיל מחדש את סנכרון iCloud."
-          }
-        }
-      }
-    },
-    "Syncing…" : {
-      "comment" : "iCloud Sync status: sending changes",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "מסנכרן…"
-          }
-        }
-      }
-    },
-    "To stop syncing, leave the household." : {
-      "comment" : "iCloud Sync footer for household members (switch is locked on)",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "כדי להפסיק את הסנכרון, עזבו את משק הבית."
-          }
-        }
-      }
-    },
-    "Turn Off" : {
-      "comment" : "Alert button: turn off iCloud Sync",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "כיבוי"
-          }
-        }
-      }
-    },
-    "Turn Off iCloud Sync?" : {
-      "comment" : "Confirm alert title when an owner with a household turns sync off",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "לכבות את סנכרון iCloud?"
-          }
-        }
-      }
-    },
-    "Turn on iCloud Sync to share your lists with your household." : {
-      "comment" : "Settings Household section footer while iCloud Sync is off",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "הפעילו את סנכרון iCloud כדי לשתף את הרשימות עם משק הבית."
-          }
-        }
-      }
-    },
-    "Up to date" : {
-      "comment" : "iCloud Sync status: everything sent",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "מעודכן"
-          }
-        }
-      }
-    },
-    "Waiting for a connection. Changes will sync automatically." : {
-      "comment" : "iCloud Sync status: unsent changes, no network",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ממתין לחיבור. השינויים יסונכרנו אוטומטית."
-          }
-        }
-      }
-    },
     "“%@” will be removed from your library and shopping list." : {
       "comment" : "Delete item confirmation message; %@ is the item name",
       "localizations" : {
@@ -594,6 +44,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "״%@״ יוסר מהספרייה ומרשימת הקניות."
+          }
+        }
+      }
+    },
+    "%@ invited you to share Shoplister lists." : {
+      "comment" : "Join household alert message on a phone with no lists of its own; %@ is the inviter's name",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "התקבלה הזמנה מאת %@ לשתף רשימות Shoplister."
+          }
+        }
+      }
+    },
+    "%@ invited you to share Shoplister lists. Joining replaces the lists on this iPhone with the household's lists." : {
+      "comment" : "Join household alert message; %@ is the inviter's name",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "התקבלה הזמנה מאת %@ לשתף רשימות Shoplister. ההצטרפות תחליף את הרשימות באייפון זה ברשימות של משק הבית."
           }
         }
       }
@@ -742,6 +214,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld פריטים לא מסומנים"
+          }
+        }
+      }
+    },
+    "+ menu" : {
+      "comment" : "Tips & features: long-press menu on the + button, title",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "תפריט +"
           }
         }
       }
@@ -1050,6 +533,17 @@
         }
       }
     },
+    "Back Up First" : {
+      "comment" : "Alert button: cancel turning on sync and export a backup",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "גיבוי תחילה"
+          }
+        }
+      }
+    },
     "Backup" : {
       "comment" : "Backup section title and error alert title",
       "localizations" : {
@@ -1116,6 +610,17 @@
         }
       }
     },
+    "Changes sync automatically across everyone's devices." : {
+      "comment" : "Joining household card: changes sync automatically",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "השינויים מסתנכרנים אוטומטית בין המכשירים של כולם."
+          }
+        }
+      }
+    },
     "Check off" : {
       "comment" : "App feature title: check off shopping list items",
       "localizations" : {
@@ -1139,6 +644,17 @@
         }
       }
     },
+    "Check your internet connection and try turning on iCloud Sync again." : {
+      "comment" : "Alert message when checking iCloud before enabling sync fails",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "בדקו את החיבור לאינטרנט ונסו להפעיל שוב את סנכרון iCloud."
+          }
+        }
+      }
+    },
     "Checked" : {
       "comment" : "Title for checked-items section when sort checked is on",
       "localizations" : {
@@ -1146,6 +662,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "סומנו"
+          }
+        }
+      }
+    },
+    "Checking iCloud…" : {
+      "comment" : "iCloud Sync status: checking account",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "בודק את iCloud…"
           }
         }
       }
@@ -1273,6 +800,17 @@
         }
       }
     },
+    "Clear when done" : {
+      "comment" : "Tips & features: clear list when everything is checked, title",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ניקוי בסיום"
+          }
+        }
+      }
+    },
     "Collapse %@" : {
       "comment" : "Accessibility label to collapse a section; %@ is section title",
       "localizations" : {
@@ -1361,6 +899,61 @@
         }
       }
     },
+    "Couldn't check iCloud. Try again later." : {
+      "comment" : "iCloud Sync status: could not determine",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ניתן לבדוק את iCloud. נסו שוב מאוחר יותר."
+          }
+        }
+      }
+    },
+    "Couldn't Join Household" : {
+      "comment" : "Alert title when accepting an invite fails",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ניתן להצטרף למשק הבית"
+          }
+        }
+      }
+    },
+    "Couldn't Leave Household" : {
+      "comment" : "Alert title when leaving the household fails",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ניתן לעזוב את משק הבית"
+          }
+        }
+      }
+    },
+    "Couldn't Open Household" : {
+      "comment" : "Alert title when household sharing fails to open",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ניתן לפתוח את משק הבית"
+          }
+        }
+      }
+    },
+    "Couldn't Reach iCloud" : {
+      "comment" : "Alert title when checking iCloud before enabling sync fails",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ניתן להתחבר ל-iCloud"
+          }
+        }
+      }
+    },
     "Create" : {
       "comment" : "Create button",
       "localizations" : {
@@ -1379,6 +972,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "יצירת פריט"
+          }
+        }
+      }
+    },
+    "Create shared household" : {
+      "comment" : "Settings button: create the household share and invite people",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "יצירת משק בית משותף"
           }
         }
       }
@@ -1412,17 +1016,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "כהה"
-          }
-        }
-      }
-    },
-    "Data & sharing" : {
-      "comment" : "App features section header for data and sharing features",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "נתונים ושיתוף"
           }
         }
       }
@@ -1683,13 +1276,13 @@
         }
       }
     },
-    "Edit or reorder items, select multiple items to move or delete, and manage sections from the Edit menu." : {
+    "Edit or reorder items, select multiple items to move or delete, and manage sections from the Edit menu in All Items." : {
       "comment" : "App feature description: edit item library",
       "localizations" : {
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ערכו או סדרו מחדש פריטים, בחרו מספר פריטים להעברה או מחיקה, ונהלו קבוצות מתפריט העריכה."
+            "value" : "ערכו או סדרו מחדש פריטים, בחרו מספר פריטים להעברה או מחיקה, ונהלו קבוצות מתפריט העריכה במסך כל הפריטים."
           }
         }
       }
@@ -1716,6 +1309,17 @@
         }
       }
     },
+    "Everyone in the household sees and edits the same lists." : {
+      "comment" : "Settings Household section footer for members",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כל חברי משק הבית רואים ועורכים את אותן רשימות."
+          }
+        }
+      }
+    },
     "Expand %@" : {
       "comment" : "Accessibility label to expand a section; %@ is section title",
       "localizations" : {
@@ -1738,13 +1342,13 @@
         }
       }
     },
-    "Export your library, sections, recipes, and item photos as a zip file. Import to restore or move to another device." : {
+    "Export your library, sections, saved lists, and item photos as a zip file. Import to restore or move to another device." : {
       "comment" : "App feature description: library backup export and import",
       "localizations" : {
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ייצאו את הספרייה, הקבוצות, המתכונים ותמונות הפריטים כקובץ zip. ייבאו לשחזור או מעבר למכשיר אחר."
+            "value" : "ייצאו את הספרייה, הקבוצות, הרשימות השמורות ותמונות הפריטים כקובץ zip. ייבאו לשחזור או מעבר למכשיר אחר."
           }
         }
       }
@@ -1872,6 +1476,105 @@
         }
       }
     },
+    "Household" : {
+      "comment" : "Settings section title for household sharing",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "משק בית"
+          }
+        }
+      }
+    },
+    "Household Sharing Ended" : {
+      "comment" : "Alert title when a member was removed or sharing stopped",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "שיתוף משק הבית הסתיים"
+          }
+        }
+      }
+    },
+    "iCloud already has a library. The items, sections, shopping list, and saved lists on this device will be replaced with it." : {
+      "comment" : "Alert message when turning on iCloud Sync and iCloud already has a library",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כבר קיימת ספרייה ב-iCloud. הפריטים, הקבוצות, רשימת הקניות והרשימות השמורות במכשיר זה יוחלפו בה."
+          }
+        }
+      }
+    },
+    "iCloud is temporarily unavailable. Sync will resume automatically." : {
+      "comment" : "iCloud Sync status: temporarily unavailable",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud אינו זמין זמנית. הסנכרון יתחדש אוטומטית."
+          }
+        }
+      }
+    },
+    "iCloud isn't available on this device." : {
+      "comment" : "iCloud Sync status: restricted (e.g. parental controls)",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud אינו זמין במכשיר זה."
+          }
+        }
+      }
+    },
+    "iCloud Sync" : {
+      "comment" : "Toggle: sync library and shopping list through iCloud",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "סנכרון iCloud"
+          }
+        }
+      }
+    },
+    "iCloud Sync is on, so this also applies to everyone in your household." : {
+      "comment" : "Extra line in destructive library alerts when the owner has invited people",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "סנכרון iCloud מופעל, ולכן הפעולה תחול גם על כל חברי משק הבית."
+          }
+        }
+      }
+    },
+    "iCloud Sync is on, so this also applies to your other devices." : {
+      "comment" : "Extra line in destructive library alerts while iCloud Sync is on",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "סנכרון iCloud מופעל, ולכן הפעולה תחול גם על המכשירים האחרים שלכם."
+          }
+        }
+      }
+    },
+    "iCloud Sync Turned Off" : {
+      "comment" : "Alert title when sync turns itself off",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "סנכרון iCloud כובה"
+          }
+        }
+      }
+    },
     "Import" : {
       "comment" : "Import backup button",
       "localizations" : {
@@ -1938,8 +1641,20 @@
         }
       }
     },
+    "Invite people to share your lists. Everyone in the household sees and edits the same lists." : {
+      "comment" : "Settings Household section footer",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הזמינו אנשים לשתף את הרשימות שלכם. כל חברי משק הבית רואים ועורכים את אותן רשימות."
+          }
+        }
+      }
+    },
     "Item library" : {
       "comment" : "App features section header for item library features",
+      "extractionState" : "stale",
       "localizations" : {
         "he" : {
           "stringUnit" : {
@@ -2004,6 +1719,39 @@
         }
       }
     },
+    "Join" : {
+      "comment" : "Alert button: join the household",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הצטרפות"
+          }
+        }
+      }
+    },
+    "Join Household?" : {
+      "comment" : "Alert title when opening a household invite",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "להצטרף למשק הבית?"
+          }
+        }
+      }
+    },
+    "Joining" : {
+      "comment" : "Disabled button while joining a household",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "מצטרפים"
+          }
+        }
+      }
+    },
     "Keep List" : {
       "comment" : "Keep shopping list button when all items checked",
       "localizations" : {
@@ -2015,6 +1763,28 @@
         }
       }
     },
+    "Keep your library and shopping list in sync on all your devices signed in to the same Apple ID." : {
+      "comment" : "Footer under iCloud Sync toggle",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "שמירה על הספרייה ורשימת הקניות מסונכרנות בכל המכשירים המחוברים לאותו Apple ID."
+          }
+        }
+      }
+    },
+    "Keep your library, shopping list, saved lists, and photos the same on all your devices. Turn it on in Settings → Library." : {
+      "comment" : "Tips & features: iCloud Sync description",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "שמרו על הספרייה, רשימת הקניות, הרשימות השמורות והתמונות זהות בכל המכשירים שלכם. הפעילו בהגדרות ← ספרייה."
+          }
+        }
+      }
+    },
     "Large" : {
       "comment" : "Large text size option",
       "localizations" : {
@@ -2022,6 +1792,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "גדול"
+          }
+        }
+      }
+    },
+    "Leave" : {
+      "comment" : "Alert button: leave the household",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "עזיבה"
+          }
+        }
+      }
+    },
+    "Leave Household" : {
+      "comment" : "Settings button for members: leave the household",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "עזיבת משק הבית"
+          }
+        }
+      }
+    },
+    "Leave Household?" : {
+      "comment" : "Confirm alert title before leaving the household",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לעזוב את משק הבית?"
           }
         }
       }
@@ -2214,24 +2017,57 @@
         }
       }
     },
-    "Long press" : {
-      "comment" : "App feature title: long press shopping list row",
+    "Make + open All Items directly. Pulling down still opens Add item (enable in Settings)." : {
+      "comment" : "Tips & features: Shortcut to All Items description",
       "localizations" : {
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "לחיצה ארוכה"
+            "value" : "הגדירו את + כך שיפתח ישירות את כל הפריטים. משיכה למטה עדיין פותחת את הוספת פריט (הפעלה בהגדרות)."
           }
         }
       }
     },
-    "Long press an item to adjust quantity. You can also quickly move the item to another store section, or edit/remove the item. If the item has a photo, you will see a preview." : {
-      "comment" : "App feature description: long press shopping list row",
+    "Make sure you're online and iCloud Sync says Up to date, then try again." : {
+      "comment" : "Alert message when household sharing fails to open",
       "localizations" : {
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "לחצו לחיצה ארוכה על פריט כדי לשנות כמות. אפשר גם להעביר במהירות לקבוצת סופר אחרת, או לערוך/להסיר את הפריט. אם לפריט יש תמונה, תוצג תצוגה מקדימה."
+            "value" : "ודאו שאתם מחוברים לאינטרנט ושסנכרון iCloud מציג ״מעודכן״, ונסו שוב."
+          }
+        }
+      }
+    },
+    "Make sure you're online, then tap the invite link again." : {
+      "comment" : "Alert message when accepting an invite fails",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ודאו שאתם מחוברים לאינטרנט, ואז הקישו שוב על קישור ההזמנה."
+          }
+        }
+      }
+    },
+    "Make sure you're online, then try again." : {
+      "comment" : "Alert message when leaving the household fails",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ודאו שאתם מחוברים לאינטרנט ונסו שוב."
+          }
+        }
+      }
+    },
+    "Manage shared household" : {
+      "comment" : "Settings button: manage household members",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ניהול משק הבית המשותף"
           }
         }
       }
@@ -2243,6 +2079,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "בינוני"
+          }
+        }
+      }
+    },
+    "Member of %@'s household" : {
+      "comment" : "Settings Household row for members; %@ is the owner's name",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "חברים במשק הבית של %@"
+          }
+        }
+      }
+    },
+    "Member of a household" : {
+      "comment" : "Settings Household row for members, owner name unknown",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "חברים במשק בית"
           }
         }
       }
@@ -2419,6 +2277,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "אישור"
+          }
+        }
+      }
+    },
+    "Only the household owner can change the library language." : {
+      "comment" : "Settings footer for household members under the library language picker",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "רק הבעלים של משק הבית יכולים לשנות את שפת הספרייה."
+          }
+        }
+      }
+    },
+    "Only the household owner can clear the library." : {
+      "comment" : "Settings footer for household members under Clear library",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "רק הבעלים של משק הבית יכולים לנקות את הספרייה."
+          }
+        }
+      }
+    },
+    "Only the household owner can import a backup." : {
+      "comment" : "Settings footer for household members under Backup",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "רק הבעלים של משק הבית יכולים לייבא גיבוי."
           }
         }
       }
@@ -2625,17 +2516,6 @@
         }
       }
     },
-    "Pull down on the shopping list to search your library and quickly add items without leaving the list." : {
-      "comment" : "App feature description: pull down to add items",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "משכו למטה ברשימת הקניות כדי לחפש בספרייה ולהוסיף פריטים במהירות בלי לעזוב את הרשימה."
-          }
-        }
-      }
-    },
     "Pull down or tap" : {
       "comment" : "Empty shopping add hint before plus symbol",
       "localizations" : {
@@ -2825,6 +2705,17 @@
         }
       }
     },
+    "Replace This Device's Library?" : {
+      "comment" : "Alert title when turning on iCloud Sync and iCloud already has a library",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "להחליף את הספרייה במכשיר זה?"
+          }
+        }
+      }
+    },
     "Save" : {
       "comment" : "Save button",
       "localizations" : {
@@ -2960,13 +2851,13 @@
         }
       }
     },
-    "Search your library from Home or the Store. Create a new item when nothing matches." : {
+    "Search your library from Add item or All Items. Create a new item when nothing matches." : {
       "comment" : "App feature description: search or create items",
       "localizations" : {
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "חפשו בספרייה ממסך הבית או מהחנות. צרו פריט חדש כשאין התאמה."
+            "value" : "חפשו בספרייה ממסך הוספת פריט או מכל הפריטים. צרו פריט חדש כשאין התאמה."
           }
         }
       }
@@ -3070,6 +2961,17 @@
         }
       }
     },
+    "Share your lists with the people you shop with. Everyone sees changes as they happen. Create one in Settings → Library." : {
+      "comment" : "Tips & features: shared household description",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "שתפו את הרשימות עם מי שאתם קונים איתו. כולם רואים את השינויים מיד. צרו משק בית בהגדרות ← ספרייה."
+          }
+        }
+      }
+    },
     "Share your unchecked shopping list as plain text, grouped by store section, with quantities." : {
       "comment" : "App feature description: share shopping list",
       "localizations" : {
@@ -3081,6 +2983,28 @@
         }
       }
     },
+    "Shared household" : {
+      "comment" : "Tips & features: shared household title",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "משק בית משותף"
+          }
+        }
+      }
+    },
+    "Shared Household" : {
+      "comment" : "Title of the household invite and the joining card",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "משק בית משותף"
+          }
+        }
+      }
+    },
     "Shoplister" : {
       "comment" : "App name on About screen",
       "localizations" : {
@@ -3088,6 +3012,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shoplister"
+          }
+        }
+      }
+    },
+    "Shoplister's data was removed from iCloud. Your lists are still on this device. Turn on iCloud Sync again to upload them." : {
+      "comment" : "Alert message: sync turned off after the app's iCloud data was deleted",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הנתונים של Shoplister הוסרו מ-iCloud. הרשימות שלכם עדיין במכשיר זה. הפעילו שוב את סנכרון iCloud כדי להעלות אותן."
           }
         }
       }
@@ -3213,6 +3148,17 @@
         }
       }
     },
+    "Some changes couldn't sync. Try turning iCloud Sync off and on again." : {
+      "comment" : "iCloud Sync status: a send failed permanently",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "חלק מהשינויים לא סונכרנו. נסו לכבות ולהפעיל מחדש את סנכרון iCloud."
+          }
+        }
+      }
+    },
     "Sort checked items" : {
       "comment" : "Sort checked items toggle",
       "localizations" : {
@@ -3257,13 +3203,35 @@
         }
       }
     },
-    "Switch the item library between English and Hebrew. App menus follow your phone language." : {
+    "Switch the item library between English and Hebrew. App menus follow your phone language. In a shared household, only the owner can change it." : {
       "comment" : "App feature description: library language",
       "localizations" : {
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "החליפו את שפת ספריית הפריטים בין אנגלית לעברית. תפריטי האפליקציה עוקבים אחר שפת הטלפון."
+            "value" : "החליפו את שפת ספריית הפריטים בין אנגלית לעברית. תפריטי האפליקציה עוקבים אחר שפת הטלפון. במשק בית משותף, רק הבעלים יכולים לשנות אותה."
+          }
+        }
+      }
+    },
+    "Sync & sharing" : {
+      "comment" : "App features section header for data and sharing features",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "סנכרון ושיתוף"
+          }
+        }
+      }
+    },
+    "Syncing…" : {
+      "comment" : "iCloud Sync status: sending changes",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "מסנכרן…"
           }
         }
       }
@@ -3297,6 +3265,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "הקש על "
+          }
+        }
+      }
+    },
+    "Tap + or pull down on the shopping list to search your library and quickly add items without leaving the list." : {
+      "comment" : "App feature description: pull down to add items",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הקישו על + או משכו למטה ברשימת הקניות כדי לחפש בספרייה ולהוסיף פריטים במהירות בלי לעזוב את הרשימה."
           }
         }
       }
@@ -3558,6 +3537,17 @@
         }
       }
     },
+    "To stop syncing, leave the household." : {
+      "comment" : "iCloud Sync footer for household members (switch is locked on)",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כדי להפסיק את הסנכרון, עזבו את משק הבית."
+          }
+        }
+      }
+    },
     "to view your complete library" : {
       "comment" : "Empty shopping add hint after library symbol, wraps before next line",
       "extractionState" : "stale",
@@ -3566,6 +3556,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "לצפייה בספרייה המלאה שלכם"
+          }
+        }
+      }
+    },
+    "Touch and hold" : {
+      "comment" : "App feature title: long press shopping list row",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לחיצה ארוכה"
+          }
+        }
+      }
+    },
+    "Touch and hold + for quick access to Add item, All Items, Saved lists, and Create item." : {
+      "comment" : "Tips & features: long-press menu on the + button, description",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לחצו לחיצה ארוכה על + לגישה מהירה להוספת פריט, כל הפריטים, רשימות שמורות ויצירת פריט."
+          }
+        }
+      }
+    },
+    "Touch and hold an item to adjust quantity. You can also quickly move the item to another store section, or edit/remove the item. If the item has a photo, you will see a preview." : {
+      "comment" : "App feature description: long press shopping list row",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לחצו לחיצה ארוכה על פריט כדי לשנות כמות. אפשר גם להעביר במהירות לקבוצת סופר אחרת, או לערוך/להסיר את הפריט. אם לפריט יש תמונה, תוצג תצוגה מקדימה."
+          }
+        }
+      }
+    },
+    "Turn Off" : {
+      "comment" : "Alert button: turn off iCloud Sync",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כיבוי"
+          }
+        }
+      }
+    },
+    "Turn Off iCloud Sync?" : {
+      "comment" : "Confirm alert title when an owner with a household turns sync off",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לכבות את סנכרון iCloud?"
+          }
+        }
+      }
+    },
+    "Turn on iCloud Sync to share your lists with your household." : {
+      "comment" : "Settings Household section footer while iCloud Sync is off",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הפעילו את סנכרון iCloud כדי לשתף את הרשימות עם משק הבית."
           }
         }
       }
@@ -3647,6 +3703,17 @@
         }
       }
     },
+    "Up to date" : {
+      "comment" : "iCloud Sync status: everything sent",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "מעודכן"
+          }
+        }
+      }
+    },
     "Use the Import Text to Shopping List shortcut to add items when each line matches a library item name." : {
       "comment" : "App feature description: Shortcuts text import",
       "localizations" : {
@@ -3669,6 +3736,17 @@
         }
       }
     },
+    "Waiting for a connection. Changes will sync automatically." : {
+      "comment" : "iCloud Sync status: unsent changes, no network",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ממתין לחיבור. השינויים יסונכרנו אוטומטית."
+          }
+        }
+      }
+    },
     "Welcome to Shoplister!" : {
       "comment" : "Fresh-install welcome explainer title",
       "localizations" : {
@@ -3687,6 +3765,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ברוכים הבאים לשופליסטר! לכל פריט בשופליסטר יש קבוצת בית (איפה שומרים אותו) קבוצת סופר (איפה קונים אותו). ספריית הפריטים מסודרת לפי קבוצות בית. רשימת הקניות מסודרת לפי קבוצות סופר."
+          }
+        }
+      }
+    },
+    "When every item is checked off, Shoplister offers to clear the list. Turn off “Confirm before clearing list” in Settings to clear automatically." : {
+      "comment" : "Tips & features: clear list when everything is checked, description",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "כשכל הפריטים מסומנים, Shoplister מציעה לנקות את הרשימה. כבו את ״אישור לפני ניקוי הרשימה״ בהגדרות כדי לנקות אוטומטית."
           }
         }
       }
@@ -3746,6 +3835,17 @@
         }
       }
     },
+    "You signed out of iCloud or switched accounts. Your lists are still on this device. Turn on iCloud Sync again to resume." : {
+      "comment" : "Alert message: sync turned off after iCloud sign-out or account switch",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "התנתקתם מ-iCloud או החלפתם חשבון. הרשימות שלכם עדיין במכשיר זה. הפעילו שוב את סנכרון iCloud כדי להמשיך."
+          }
+        }
+      }
+    },
     "You're no longer in %@'s household. Your lists are still on this iPhone." : {
       "comment" : "Alert message when removed from a household; %@ is the owner's name",
       "localizations" : {
@@ -3775,6 +3875,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "אינכם מחוברים ל-iCloud. התחברו מאפליקציית ההגדרות כדי להשתמש בסנכרון."
+          }
+        }
+      }
+    },
+    "You've been invited to share Shoplister lists." : {
+      "comment" : "Join household alert message on a phone with no lists of its own, inviter unknown",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "התקבלה הזמנה לשתף רשימות Shoplister."
+          }
+        }
+      }
+    },
+    "You've been invited to share Shoplister lists. Joining replaces the lists on this iPhone with the household's lists." : {
+      "comment" : "Join household alert message when the inviter's name is unknown",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "התקבלה הזמנה לשתף רשימות Shoplister. ההצטרפות תחליף את הרשימות באייפון זה ברשימות של משק הבית."
           }
         }
       }
@@ -3875,39 +3997,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "רשימת הקניות מסודרת לפי קבוצות סופר."
-          }
-        }
-      }
-    },
-    "You signed out of iCloud or switched accounts. Your lists are still on this device. Turn on iCloud Sync again to resume." : {
-      "comment" : "Alert message: sync turned off after iCloud sign-out or account switch",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "התנתקתם מ-iCloud או החלפתם חשבון. הרשימות שלכם עדיין במכשיר זה. הפעילו שוב את סנכרון iCloud כדי להמשיך."
-          }
-        }
-      }
-    },
-    "You've been invited to share Shoplister lists." : {
-      "comment" : "Join household alert message on a phone with no lists of its own, inviter unknown",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "התקבלה הזמנה לשתף רשימות Shoplister."
-          }
-        }
-      }
-    },
-    "You've been invited to share Shoplister lists. Joining replaces the lists on this iPhone with the household's lists." : {
-      "comment" : "Join household alert message when the inviter's name is unknown",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "התקבלה הזמנה לשתף רשימות Shoplister. ההצטרפות תחליף את הרשימות באייפון זה ברשימות של משק הבית."
           }
         }
       }
