@@ -781,7 +781,13 @@ final class GroceryStore: ObservableObject {
     /// True while applying downloaded changes, so they aren't reported (and sent) back to iCloud.
     private var isApplyingSyncedChanges = false
 
+    /// True when the most recent library change was downloaded from another device rather than made
+    /// here. The shopping list uses it so only the person who checked the last item gets the
+    /// "clear list?" prompt (or the automatic clear); other devices just follow what they decide.
+    private(set) var lastLibraryChangeCameFromSync = false
+
     private func reportLibraryChange(from before: V3Bundle, to after: V3Bundle) {
+        lastLibraryChangeCameFromSync = isApplyingSyncedChanges
         guard !isApplyingSyncedChanges else { return }
         deliverLibraryChange(Self.changeSet(from: before, to: after))
     }

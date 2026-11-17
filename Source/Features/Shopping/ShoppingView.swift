@@ -877,6 +877,16 @@ struct ShoppingView: View {
     private func evaluateAllCheckedClearPrompt() {
         let now = allVisibleShoppingItemsChecked
         let restoredFromEmpty = lastResolvedShoppingListWasEmpty == true && !entriesWithItems.isEmpty
+        // Household sync: another device's choice (keep or clear) arrives on its own, so a change that
+        // came from sync never prompts or auto-clears here. If our prompt is open and the list stopped
+        // being all-checked (someone else cleared it or unchecked an item), close it.
+        if store.lastLibraryChangeCameFromSync {
+            if isPresentingAllCheckedClearConfirm, !now {
+                isPresentingAllCheckedClearConfirm = false
+            }
+            wasAllVisibleItemsChecked = now
+            return
+        }
         if now, !wasAllVisibleItemsChecked, !restoredFromEmpty {
             if confirmClearWhenAllChecked {
                 withAnimation(Self.allCheckedClearDialogAnimation) {
