@@ -65,7 +65,8 @@ struct ShoppingView: View {
     @AppStorage(AppShoppingCollapseCompletedSections.storageKey) private var collapseCompletedSections: Bool = false
     @AppStorage(AppShoppingHideStoreGroupNames.storageKey) private var hideStoreGroupNames: Bool = false
     @AppStorage(AppShoppingConfirmClearWhenAllChecked.storageKey) private var confirmClearWhenAllChecked: Bool = true
-    @AppStorage(AppShoppingPlusOpensAllItems.storageKey) private var plusOpensAllItems: Bool = false
+    @AppStorage(AppPlusButtonTap.storageKey) private var plusTapRaw: String = AppPlusButtonTap.defaultRawValue
+    @AppStorage(AppPlusButtonHold.storageKey) private var plusHoldRaw: String = AppPlusButtonHold.defaultRawValue
     @AppStorage(AppShoppingEmptyAddHint.storageKey) private var emptyAddHintCompletedListCount: Int = 0
     @AppStorage(AppTextSize.storageKey) private var textSizeRaw: String = AppTextSize.defaultSize.rawValue
 
@@ -349,6 +350,25 @@ struct ShoppingView: View {
     }
 
     /// Long-press menu on the + (tap keeps `onAddItem`, which honors **Shortcut to All Items**).
+    private var plusTapAction: PlusButtonAction {
+        PlusButtonAction(rawValue: plusTapRaw) ?? .addItem
+    }
+
+    private var plusHoldAction: PlusButtonAction {
+        PlusButtonAction(rawValue: plusHoldRaw) ?? .menu
+    }
+
+    /// The closure for a + action (Settings → List → + Button). Nil for `.menu`, or when unavailable.
+    private func plusButtonClosure(_ action: PlusButtonAction) -> (() -> Void)? {
+        switch action {
+        case .menu: return nil
+        case .addItem: return onBeginPullToAddSearch
+        case .allItems: return onShowAllItems
+        case .savedLists: return onSavedLists
+        case .createItem: return onCreateItem
+        }
+    }
+
     private var storeAddItemMenuActions: StoreAddItemMenuActions? {
         guard let onShowAllItems, let onSavedLists, let onCreateItem else { return nil }
         return StoreAddItemMenuActions(
@@ -705,11 +725,11 @@ struct ShoppingView: View {
                     ToolbarSpacer(.flexible, placement: .bottomBar)
                     ToolbarItem(placement: .bottomBar) {
                         StoreAddItemToolbarButton(
-                            accessibilityLabel: plusOpensAllItems
-                                ? LocalizedCopy.allItemsButton
-                                : LocalizedCopy.addItem,
-                            action: onAddItem,
-                            menuActions: storeAddItemMenuActions
+                            accessibilityLabel: plusTapAction.title,
+                            action: plusButtonClosure(plusTapAction) ?? onAddItem,
+                            menuActions: plusHoldAction == .menu ? storeAddItemMenuActions : nil,
+                            holdTitle: plusHoldAction.title,
+                            holdAction: plusButtonClosure(plusHoldAction)
                         )
                             .id(appTheme.id)
                     }
@@ -1386,10 +1406,17 @@ private struct StoreAddItemMenuActions {
 private struct StoreAddItemToolbarButton: View {
     @Environment(\.appTheme) private var appTheme
 
-    /// "Add item", or "All Items" when the + shortcut setting is on.
+    /// The tap action's name (Settings → List → + Button → Tap).
     var accessibilityLabel: String = LocalizedCopy.addItem
     let action: () -> Void
+    /// Touch and hold shows this menu (the default)…
     var menuActions: StoreAddItemMenuActions? = nil
+    /// …or, when a single action is chosen instead, runs it.
+    var holdTitle: String = ""
+    var holdAction: (() -> Void)? = nil
+
+    /// A finished touch-and-hold also ends as a tap on release; skip that one tap.
+    @State private var ignoresNextTap = false
 
     private var plusGlyph: some View {
         // No explicit font: the toolbar sizes it like the other bar icons.
@@ -1429,6 +1456,31 @@ private struct StoreAddItemToolbarButton: View {
             } primaryAction: {
                 action()
             }
+            // No vibration when the menu opens: a toolbar Menu keeps the press to itself and has no
+            // "opened" callback (tried onAppear on its rows and press detectors; neither works).
+            .modifier(StoreAddItemToolbarChrome(accessibilityLabel: accessibilityLabel))
+        } else if let holdAction {
+            Button {
+                if ignoresNextTap {
+                    ignoresNextTap = false
+                    return
+                }
+                action()
+            } label: {
+                plusGlyph
+            }
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                    ignoresNextTap = true
+                    AppHaptics.impact(.medium)
+                    holdAction()
+                    // If the button didn't report the release as a tap, don't swallow the next real one.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        ignoresNextTap = false
+                    }
+                }
+            )
+            .accessibilityAction(named: holdTitle, holdAction)
             .modifier(StoreAddItemToolbarChrome(accessibilityLabel: accessibilityLabel))
         } else {
             Button(action: action) {

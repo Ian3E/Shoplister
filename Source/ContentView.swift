@@ -53,8 +53,6 @@ struct ContentView: View {
     @AppStorage(AppStoreGesturesExplainer.storageKey) private var hasSeenStoreGesturesExplainer = false
     @AppStorage(AppHomeCatalogVisit.storageKey) private var hasVisitedHomeCatalog = false
     @AppStorage(AppShoppingSortChecked.storageKey) private var sortCheckedShoppingItems: Bool = false
-    @AppStorage(AppListTabBadge.storageKey) private var showListTabBadge: Bool = true
-    @AppStorage(AppShoppingPlusOpensAllItems.storageKey) private var plusOpensAllItems: Bool = false
     @AppStorage(AppShoppingBadgeUnchecked.storageKey) private var showUncheckedCountAppBadge: Bool = false
     /// Text size draft while Settings is open; committed in the sheet `onDismiss` handler only.
     @State private var settingsTextSizeDraft: String = AppTextSize.defaultSize.rawValue
@@ -73,10 +71,9 @@ struct ContentView: View {
         ShoppingListShareText.hasUncheckedItemsToShare(store: store)
     }
 
-    /// All Items shopping-list button badge when the dedicated setting is on (0 hides the badge).
+    /// All Items shopping-list button badge: unchecked count, always shown (0 hides the badge).
     private var listTabUncheckedBadge: Int {
-        guard showListTabBadge else { return 0 }
-        return ShoppingIconBadge.uncheckedCount(store: store)
+        ShoppingIconBadge.uncheckedCount(store: store)
     }
 
     // MARK: - Navigation root
@@ -93,8 +90,8 @@ struct ContentView: View {
                     onShare: presentShoppingListShare,
                     onSettings: { isPresentingSettings = true },
                     onManageStoreSections: { editGroupsSheetKind = .shopping },
-                    // Pull-down always opens pull-to-add (`onBeginPullToAddSearch`); only + honors the shortcut.
-                    onAddItem: handleShoppingListPlusTapped,
+                    // ShoppingView maps + tap / touch-and-hold (Settings → List → + Button) onto these.
+                    onAddItem: beginStoreTabPullToAdd,
                     onShowAllItems: { isShowingAllItems = true },
                     onSavedLists: { isPresentingShoppingSavedLists = true },
                     onCreateItem: createItemFromShoppingList
@@ -287,15 +284,6 @@ struct ContentView: View {
         newItemPrefillName = nil
         newItemAddToShoppingAfterSave = true
         isPresentingNewCatalogItem = true
-    }
-
-    /// Shopping list +: All Items when **Shortcut to All Items** is on, otherwise pull-to-add.
-    private func handleShoppingListPlusTapped() {
-        if plusOpensAllItems {
-            isShowingAllItems = true
-        } else {
-            beginStoreTabPullToAdd()
-        }
     }
 
     /// Pull-to-add **All Items**: close the sheet and push All Items underneath it.

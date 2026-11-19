@@ -1262,12 +1262,18 @@ struct InventoryView: View {
         // doesn't tear down the search control. Show + with edit toolbar chrome (same turn as
         // the top morph). Gating on deferred row chrome inserts + mid-morph and jumps the bar.
         if minimizesToolbarSearch, usesHomeToolbarSearch, isHomeToolbarSearchChromeActive {
+            // Search leading, then the shopping-list button (browse) or + (edit) trailing. Search
+            // stays in the same spot in both modes so Edit/Done doesn't move or rebuild it.
+            if showsToolbarSearchButton || isHomeToolbarSearchPresented {
+                DefaultToolbarItem(kind: .search, placement: .bottomBar)
+            }
+            ToolbarSpacer(.flexible, placement: .bottomBar)
             if showsHomeEditToolbarChrome, let onToolbarAddItem {
                 ToolbarItem(id: "homeCatalogAdd", placement: .bottomBar) {
                     ToolbarCatalogAddButton(action: onToolbarAddItem)
                 }
             } else if !showsHomeEditToolbarChrome, let onShowShoppingList {
-                // Browse mode: leading shopping-list button (pops back to the list).
+                // Browse mode: trailing shopping-list button (pops back to the list).
                 ToolbarItem(id: "homeCatalogShoppingList", placement: .bottomBar) {
                     HomeShoppingListToolbarButton(
                         badgeCount: shoppingListBadgeCount,
@@ -1276,10 +1282,6 @@ struct InventoryView: View {
                         onMountedChange: onShoppingListButtonMountedChange
                     )
                 }
-            }
-            if showsToolbarSearchButton || isHomeToolbarSearchPresented {
-                ToolbarSpacer(.flexible, placement: .bottomBar)
-                DefaultToolbarItem(kind: .search, placement: .bottomBar)
             }
         } else if showsHomeBottomEditToolbarChrome {
             ToolbarItem(placement: .bottomBar) {

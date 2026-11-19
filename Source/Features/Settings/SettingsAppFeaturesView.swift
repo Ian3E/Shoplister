@@ -41,8 +41,8 @@ private struct AppFeatureRow: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(feature.title)
-                Text(feature.description)
+                AppFeatureText.make(feature.title)
+                AppFeatureText.make(feature.description)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -50,5 +50,19 @@ private struct AppFeatureRow: View {
         }
         .catalogListRowSeparatorFullWidth(true)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Tips text with `{plus}` markers drawn as the + button's own symbol (plus.circle), inline.
+private enum AppFeatureText {
+    static let plusMarker = "{plus}"
+
+    static func make(_ string: String) -> Text {
+        let parts = string.components(separatedBy: plusMarker)
+        var text = Text(parts[0])
+        for part in parts.dropFirst() {
+            text = text + Text(Image(systemName: "plus.circle")) + Text(part)
+        }
+        return text
     }
 }

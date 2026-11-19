@@ -11,12 +11,39 @@ struct SettingsGeneralView: View {
     @AppStorage(AppShoppingHideStoreGroupNames.storageKey) private var hideStoreGroupNames: Bool = false
     @AppStorage(AppShoppingConfirmClearWhenAllChecked.storageKey) private var confirmClearWhenAllChecked: Bool = true
     @AppStorage(AppLibraryAutoExpandQuantityPicker.storageKey) private var autoExpandQuantityPicker: Bool = true
-    @AppStorage(AppShoppingPlusOpensAllItems.storageKey) private var plusOpensAllItems: Bool = false
-    @AppStorage(AppListTabBadge.storageKey) private var showListTabBadge: Bool = true
+    @AppStorage(AppPlusButtonTap.storageKey) private var plusTapRaw: String = AppPlusButtonTap.defaultRawValue
+    @AppStorage(AppPlusButtonHold.storageKey) private var plusHoldRaw: String = AppPlusButtonHold.defaultRawValue
     @AppStorage(AppShoppingBadgeUnchecked.storageKey) private var showUncheckedCountAppBadge: Bool = false
 
     var body: some View {
         List {
+            Section {
+                // Labels show the + button's own symbol inline ("Tap ⊕"); %@ marks where it goes,
+                // so the Hebrew can place it naturally.
+                Picker(selection: $plusTapRaw) {
+                    ForEach(AppPlusButtonTap.options) { option in
+                        Text(option.title).tag(option.rawValue)
+                    }
+                } label: {
+                    Text(
+                        "Tap \(Image(systemName: "plus.circle")) button",
+                        comment: "Settings → List: picker for what tapping the + button does; %@ is the + symbol"
+                    )
+                }
+                Picker(selection: $plusHoldRaw) {
+                    ForEach(AppPlusButtonHold.options) { option in
+                        Text(option.title).tag(option.rawValue)
+                    }
+                } label: {
+                    Text(
+                        "Tap & Hold \(Image(systemName: "plus.circle")) button",
+                        comment: "Settings → List: picker for what touching and holding the + button does; %@ is the + symbol"
+                    )
+                }
+            } footer: {
+                Text(LocalizedCopy.plusButtonFooter)
+            }
+
             Section {
                 Toggle(LocalizedCopy.sortCheckedItems, isOn: $sortCheckedShoppingItems)
             } footer: {
@@ -45,18 +72,6 @@ struct SettingsGeneralView: View {
                 Toggle(LocalizedCopy.autoExpandQuantityPicker, isOn: $autoExpandQuantityPicker)
             } footer: {
                 Text(LocalizedCopy.autoExpandQuantityPickerFooter)
-            }
-
-            Section {
-                Toggle(LocalizedCopy.shortcutToAllItems, isOn: $plusOpensAllItems)
-            } footer: {
-                Text(LocalizedCopy.shortcutToAllItemsFooter)
-            }
-
-            Section {
-                Toggle(LocalizedCopy.listTabBadge, isOn: $showListTabBadge)
-            } footer: {
-                Text(LocalizedCopy.listTabBadgeFooter)
             }
 
             Section {
@@ -115,6 +130,12 @@ struct SettingsItemLibraryView: View {
     /// Household sharing needs iCloud Sync on and an iCloud account ready.
     private var canUseHousehold: Bool {
         iCloudSyncEnabled && iCloudAccount.status == .available
+    }
+
+    /// Still finding out whether a household exists (only right after sync starts; the check
+    /// normally finishes long before Settings is opened).
+    private var isCheckingHousehold: Bool {
+        canUseHousehold && !sync.householdShareChecked
     }
 
     /// Phase 2e: household members can't do the library-wide actions that would wipe everyone's lists.
@@ -206,16 +227,20 @@ struct SettingsItemLibraryView: View {
                         Task { await sync.presentHouseholdSharing() }
                     } label: {
                         HStack {
-                            Text(sync.householdShare == nil
-                                ? LocalizedCopy.createSharedHousehold
-                                : LocalizedCopy.manageSharedHousehold)
-                            if sync.isPreparingHouseholdSharing {
+                            if isCheckingHousehold {
+                                Text(LocalizedCopy.checking)
+                            } else {
+                                Text(sync.householdShare == nil
+                                    ? LocalizedCopy.createSharedHousehold
+                                    : LocalizedCopy.manageSharedHousehold)
+                            }
+                            if sync.isPreparingHouseholdSharing || isCheckingHousehold {
                                 Spacer()
                                 ProgressView()
                             }
                         }
                     }
-                    .disabled(!canUseHousehold || sync.isPreparingHouseholdSharing)
+                    .disabled(!canUseHousehold || sync.isPreparingHouseholdSharing || isCheckingHousehold)
                     .task { await sync.refreshHouseholdShare() }
                     .alert(LocalizedCopy.couldNotOpenHouseholdTitle, isPresented: $sync.householdSharingFailed) {
                         Button(LocalizedCopy.ok, role: .cancel) {}

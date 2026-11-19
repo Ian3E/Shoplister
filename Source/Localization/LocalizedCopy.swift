@@ -127,14 +127,7 @@ enum LocalizedCopy {
     }
 
     static var appFeaturePlusMenuTitle: String {
-        String(localized: "+ menu", comment: "Tips & features: long-press menu on the + button, title")
-    }
-
-    static var appFeaturePlusMenuDescription: String {
-        String(
-            localized: "Touch and hold + for quick access to Add item, All Items, Saved lists, and Create item.",
-            comment: "Tips & features: long-press menu on the + button, description"
-        )
+        String(localized: "{plus} button", comment: "Tips & features: the + button, title. {plus} is replaced by the + symbol; keep it as is.")
     }
 
     static var appFeatureClearWhenDoneTitle: String {
@@ -148,10 +141,17 @@ enum LocalizedCopy {
         )
     }
 
-    static var appFeatureShortcutToAllItemsDescription: String {
+    static var appFeaturePlusButtonDescription: String {
         String(
-            localized: "Make + open All Items directly. Pulling down still opens Add item (enable in Settings).",
-            comment: "Tips & features: Shortcut to All Items description"
+            localized: "Tap {plus} to add an item, or tap & hold for a menu of shortcuts. Choose what each one does in Settings → List.",
+            comment: "Tips & features: the + button, description. {plus} is replaced by the + symbol; keep it as is."
+        )
+    }
+
+    static var plusButtonFooter: String {
+        String(
+            localized: "Pulling down on the shopping list always opens Add item.",
+            comment: "Settings → List footer under the + button options"
         )
     }
 
@@ -194,7 +194,7 @@ enum LocalizedCopy {
 
     static var appFeaturePullDownToAddDescription: String {
         String(
-            localized: "Tap + or pull down on the shopping list to search your library and quickly add items without leaving the list.",
+            localized: "Pull down on the shopping list to search your library and quickly add items without leaving the list.",
             comment: "App feature description: pull down to add items"
         )
     }
@@ -211,12 +211,12 @@ enum LocalizedCopy {
     }
 
     static var appFeatureLongPressTitle: String {
-        String(localized: "Touch and hold", comment: "App feature title: long press shopping list row")
+        String(localized: "Tap & hold", comment: "App feature title: long press shopping list row")
     }
 
     static var appFeatureLongPressDescription: String {
         String(
-            localized: "Touch and hold an item to adjust quantity. You can also quickly move the item to another store section, or edit/remove the item. If the item has a photo, you will see a preview.",
+            localized: "Tap & hold an item to adjust quantity. You can also quickly move the item to another store section, or edit/remove the item. If the item has a photo, you will see a preview.",
             comment: "App feature description: long press shopping list row"
         )
     }
@@ -372,13 +372,6 @@ enum LocalizedCopy {
         )
     }
 
-    static var appFeatureListTabBadgeDescription: String {
-        String(
-            localized: "Show a badge on the shopping list button in All Items with the count of unchecked shopping list items.",
-            comment: "App feature description: shopping list button badge"
-        )
-    }
-
     static var appFeatureDeviceOptionsTitle: String {
         String(localized: "Device options", comment: "App feature title: device options")
     }
@@ -507,10 +500,6 @@ enum LocalizedCopy {
             localized: "Sort checked items moves checked items to the end of the list. Collapse completed sections collapses finished sections by default. Hide section names removes section headers to present a more condensed list. Confirm before clearing list asks to keep or clear the list after all items are checked.",
             comment: "Footer under shopping list settings toggles"
         )
-    }
-
-    static var listTabBadge: String {
-        String(localized: "Shopping list badge", comment: "Toggle: unchecked-count badge on the All Items shopping list button")
     }
 
     // MARK: - iCloud Sync
@@ -699,6 +688,10 @@ enum LocalizedCopy {
         String(localized: "Household", comment: "Settings section title for household sharing")
     }
 
+    static var checking: String {
+        String(localized: "Checking…", comment: "Settings Household button while checking whether a household exists")
+    }
+
     static var createSharedHousehold: String {
         String(localized: "Create shared household", comment: "Settings button: create the household share and invite people")
     }
@@ -845,24 +838,6 @@ enum LocalizedCopy {
 
     static var iCloudStatusCouldNotDetermine: String {
         String(localized: "Couldn't check iCloud. Try again later.", comment: "iCloud Sync status: could not determine")
-    }
-
-    static var shortcutToAllItems: String {
-        String(localized: "Shortcut to All Items", comment: "Toggle: shopping list + button opens All Items")
-    }
-
-    static var shortcutToAllItemsFooter: String {
-        String(
-            localized: "When on, tapping + on the shopping list opens All Items. Pulling down on the list still opens Add item.",
-            comment: "Footer under Shortcut to All Items toggle"
-        )
-    }
-
-    static var listTabBadgeFooter: String {
-        String(
-            localized: "When on, the shopping list button in All Items shows how many shopping list items are still unchecked.",
-            comment: "Footer under shopping list badge toggle"
-        )
     }
 
     static var appIconBadge: String {
@@ -1164,7 +1139,7 @@ enum LocalizedCopy {
     }
 
     static var createItem: String {
-        String(localized: "Create Item", comment: "Create item action and screen title")
+        String(localized: "Create item", comment: "Create item action and screen title")
     }
 
     static var sections: String {

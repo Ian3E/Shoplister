@@ -4,6 +4,17 @@
     "" : {
 
     },
+    "Checking…" : {
+      "comment" : "Settings Household button while checking whether a household exists",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "בבדיקה…"
+          }
+        }
+      }
+    },
     ", %lld unchecked" : {
       "comment" : "Accessibility suffix for collapsed section with unchecked count",
       "localizations" : {
@@ -26,6 +37,17 @@
         }
       }
     },
+    "Pulling down on the shopping list always opens Add item." : {
+      "comment" : "Settings → List footer under the + button options",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "משיכה למטה ברשימת הקניות תמיד פותחת את הוספת פריט."
+          }
+        }
+      }
+    },
     "“[shopping_sections]” must list at least one section." : {
       "comment" : "Backup import error when shopping sections list is empty",
       "localizations" : {
@@ -33,6 +55,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "״[shopping_sections]״ חייב לכלול לפחות קבוצה אחת."
+          }
+        }
+      }
+    },
+    "Tap %@ button" : {
+      "comment" : "Settings → List: picker for what tapping the + button does; %@ is the + symbol",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הקשה על כפתור %@"
+          }
+        }
+      }
+    },
+    "Tap & Hold %@ button" : {
+      "comment" : "Settings → List: picker for what touching and holding the + button does; %@ is the + symbol",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לחיצה ארוכה על כפתור %@"
+          }
+        }
+      }
+    },
+    "Tap {plus} to add an item, or tap & hold for a menu of shortcuts. Choose what each one does in Settings → List." : {
+      "comment" : "Tips & features: the + button, description. {plus} is replaced by the + symbol; keep it as is.",
+      "localizations" : {
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הקישו על {plus} כדי להוסיף פריט, או לחצו לחיצה ארוכה לתפריט קיצורים. בחרו מה כל אחד מהם עושה בהגדרות ← רשימה."
           }
         }
       }
@@ -218,13 +273,13 @@
         }
       }
     },
-    "+ menu" : {
-      "comment" : "Tips & features: long-press menu on the + button, title",
+    "{plus} button" : {
+      "comment" : "Tips & features: the + button, title. {plus} is replaced by the + symbol; keep it as is.",
       "localizations" : {
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "תפריט +"
+            "value" : "כפתור {plus}"
           }
         }
       }
@@ -965,7 +1020,7 @@
         }
       }
     },
-    "Create Item" : {
+    "Create item" : {
       "comment" : "Create item action and screen title",
       "localizations" : {
         "he" : {
@@ -2017,17 +2072,6 @@
         }
       }
     },
-    "Make + open All Items directly. Pulling down still opens Add item (enable in Settings)." : {
-      "comment" : "Tips & features: Shortcut to All Items description",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "הגדירו את + כך שיפתח ישירות את כל הפריטים. משיכה למטה עדיין פותחת את הוספת פריט (הפעלה בהגדרות)."
-          }
-        }
-      }
-    },
     "Make sure you're online and iCloud Sync says Up to date, then try again." : {
       "comment" : "Alert message when household sharing fails to open",
       "localizations" : {
@@ -3038,17 +3082,6 @@
         }
       }
     },
-    "Shopping list badge" : {
-      "comment" : "Toggle: unchecked-count badge on the All Items shopping list button",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "תג רשימת הקניות"
-          }
-        }
-      }
-    },
     "Shopping list gestures" : {
       "comment" : "Store gestures coach overlay title",
       "localizations" : {
@@ -3082,17 +3115,6 @@
         }
       }
     },
-    "Shortcut to All Items" : {
-      "comment" : "Toggle: shopping list + button opens All Items",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "קיצור דרך לכל הפריטים"
-          }
-        }
-      }
-    },
     "Shortcuts import" : {
       "comment" : "App feature title: Shortcuts text import",
       "localizations" : {
@@ -3111,17 +3133,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "הציגו תג על סמל האפליקציה עם מספר הפריטים שלא סומנו ברשימת הקניות."
-          }
-        }
-      }
-    },
-    "Show a badge on the shopping list button in All Items with the count of unchecked shopping list items." : {
-      "comment" : "App feature description: shopping list button badge",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "הציגו תג על כפתור רשימת הקניות במסך כל הפריטים עם מספר הפריטים שלא סומנו ברשימת הקניות."
           }
         }
       }
@@ -3269,13 +3280,13 @@
         }
       }
     },
-    "Tap + or pull down on the shopping list to search your library and quickly add items without leaving the list." : {
+    "Pull down on the shopping list to search your library and quickly add items without leaving the list." : {
       "comment" : "App feature description: pull down to add items",
       "localizations" : {
         "he" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "הקישו על + או משכו למטה ברשימת הקניות כדי לחפש בספרייה ולהוסיף פריטים במהירות בלי לעזוב את הרשימה."
+            "value" : "משכו למטה ברשימת הקניות כדי לחפש בספרייה ולהוסיף פריטים במהירות בלי לעזוב את הרשימה."
           }
         }
       }
@@ -3560,7 +3571,7 @@
         }
       }
     },
-    "Touch and hold" : {
+    "Tap & hold" : {
       "comment" : "App feature title: long press shopping list row",
       "localizations" : {
         "he" : {
@@ -3571,18 +3582,7 @@
         }
       }
     },
-    "Touch and hold + for quick access to Add item, All Items, Saved lists, and Create item." : {
-      "comment" : "Tips & features: long-press menu on the + button, description",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "לחצו לחיצה ארוכה על + לגישה מהירה להוספת פריט, כל הפריטים, רשימות שמורות ויצירת פריט."
-          }
-        }
-      }
-    },
-    "Touch and hold an item to adjust quantity. You can also quickly move the item to another store section, or edit/remove the item. If the item has a photo, you will see a preview." : {
+    "Tap & hold an item to adjust quantity. You can also quickly move the item to another store section, or edit/remove the item. If the item has a photo, you will see a preview." : {
       "comment" : "App feature description: long press shopping list row",
       "localizations" : {
         "he" : {
@@ -3780,17 +3780,6 @@
         }
       }
     },
-    "When on, tapping + on the shopping list opens All Items. Pulling down on the list still opens Add item." : {
-      "comment" : "Footer under Shortcut to All Items toggle",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "כשמופעל, הקשה על + ברשימת הקניות פותחת את כל הפריטים. משיכה למטה ברשימה עדיין פותחת את הוספת פריט."
-          }
-        }
-      }
-    },
     "When on, the app icon shows how many shopping list items are still unchecked. You may be asked to allow notifications so the badge can appear." : {
       "comment" : "Footer under app icon badge toggle",
       "localizations" : {
@@ -3798,17 +3787,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "כשמופעל, סמל האפליקציה מציג כמה פריטים ברשימת הקניות עדיין לא מסומנים. ייתכן שתתבקשו לאשר התראות כדי שהתג יופיע."
-          }
-        }
-      }
-    },
-    "When on, the shopping list button in All Items shows how many shopping list items are still unchecked." : {
-      "comment" : "Footer under shopping list badge toggle",
-      "localizations" : {
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "כשמופעל, כפתור רשימת הקניות במסך כל הפריטים מציג כמה פריטים ברשימת הקניות עדיין לא מסומנים."
           }
         }
       }

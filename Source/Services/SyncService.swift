@@ -89,6 +89,8 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
     /// The household share for this zone, if the owner has created one (Phase 2b).
     @Published private(set) var householdShare: CKShare?
+    /// False until the first check after sync starts; Settings shows "Checking…" meanwhile.
+    @Published private(set) var householdShareChecked = false
     /// Getting the share ready before Apple's sharing screen opens.
     @Published private(set) var isPreparingHouseholdSharing = false
     /// Creating or opening the household failed (shown as an alert in Settings).
@@ -322,6 +324,9 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
             delegate: self
         )
         engine = CKSyncEngine(configuration)
+        // Check for a household right away, so Settings already knows by the time it's opened.
+        householdShareChecked = false
+        Task { await refreshHouseholdShare() }
         // Lets CloudKit's silent pushes reach the app so other devices' edits arrive promptly.
         UIApplication.shared.registerForRemoteNotifications()
         updateStatusFromPendingChanges()
@@ -553,6 +558,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
     /// Settings → Household calls this to show "Invite People" vs "Manage Household".
     func refreshHouseholdShare() async {
+        defer { householdShareChecked = true }
         guard engine != nil, !Self.isHouseholdMember else {
             householdShare = nil
             return
@@ -617,6 +623,7 @@ final class SyncService: ObservableObject, CKSyncEngineDelegate {
 
     fileprivate func householdShareDidChange(_ share: CKShare?) {
         householdShare = share
+        householdShareChecked = true
     }
 
     /// The app icon with a people badge: the picture for the household on Apple's sharing screens.

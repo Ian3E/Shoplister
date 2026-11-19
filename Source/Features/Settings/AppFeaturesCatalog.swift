@@ -61,11 +61,11 @@ struct AppFeatureCatalogEntry: Identifiable {
                 description: LocalizedCopy.appFeaturePullDownToAddDescription
             ),
             AppFeatureCatalogEntry(
-                id: "plusMenu",
+                id: "plusButton",
                 section: .shoppingList,
                 systemImage: "plus.circle.fill",
                 title: LocalizedCopy.appFeaturePlusMenuTitle,
-                description: LocalizedCopy.appFeaturePlusMenuDescription
+                description: LocalizedCopy.appFeaturePlusButtonDescription
             ),
             AppFeatureCatalogEntry(
                 id: "pullUpClearChecked",
@@ -115,13 +115,6 @@ struct AppFeatureCatalogEntry: Identifiable {
                 systemImage: "rectangle.compress.vertical",
                 title: LocalizedCopy.hideSectionNames,
                 description: LocalizedCopy.appFeatureHideSectionNamesDescription
-            ),
-            AppFeatureCatalogEntry(
-                id: "shortcutToAllItems",
-                section: .shoppingList,
-                systemImage: "square.grid.2x2",
-                title: LocalizedCopy.shortcutToAllItems,
-                description: LocalizedCopy.appFeatureShortcutToAllItemsDescription
             ),
             AppFeatureCatalogEntry(
                 id: "homeSections",
@@ -178,13 +171,6 @@ struct AppFeatureCatalogEntry: Identifiable {
                 systemImage: "textformat.size",
                 title: LocalizedCopy.appFeatureAppearanceTextSizeTitle,
                 description: LocalizedCopy.appFeatureAppearanceTextSizeDescription
-            ),
-            AppFeatureCatalogEntry(
-                id: "listTabBadge",
-                section: .personalization,
-                systemImage: "checklist",
-                title: LocalizedCopy.listTabBadge,
-                description: LocalizedCopy.appFeatureListTabBadgeDescription
             ),
             AppFeatureCatalogEntry(
                 id: "appIconBadge",
